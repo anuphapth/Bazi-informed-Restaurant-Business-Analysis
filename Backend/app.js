@@ -15,7 +15,7 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(morgan("combined"));
+app.use(morgan("dev"));
 
 // API routes
 const routeFiles = readdirSync("./routes");

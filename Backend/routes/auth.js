@@ -26,58 +26,58 @@ routes.post("/auth/register", authValidation.register, asyncHandler(register))
 
 routes.post("/auth/refresh", asyncHandler(refreshAccessToken))
 routes.post("/auth/logout", asyncHandler(logout))
-routes.post("/auth/logout-all", authenticateToken, requireRole("USER"), asyncHandler(logoutAllDevices))
+routes.post("/auth/logout-all", authenticateToken, requireRole("user"), asyncHandler(logoutAllDevices))
 
 routes.post(
   "/auth/detial",
   authenticateToken,
-  requireRole("USER"),
+  requireRole("user"),
   asyncHandler(preEditProfile),
 )
 routes.put(
   "/auth/editProfile",
   authenticateToken,
-  requireRole("USER"),
+  requireRole("user"),
   authValidation.editProfile,
   asyncHandler(editProfile),
 )
 routes.post(
   "/auth/prediction",
   authenticateToken,
-  requireRole("USER"),
+  requireRole("user"),
   asyncHandler(prediction),
 )
 routes.post(
   "/auth/menu",
   authenticateToken,
-  requireRole("USER"),
+  requireRole("user"),
   authValidation.page,
   asyncHandler(menu),
 )
 routes.post(
   "/auth/menu/like",
   authenticateToken,
-  requireRole("USER"),
+  requireRole("user"),
   authValidation.page,
   asyncHandler(findMenu),
 )
 routes.post(
   "/auth/menu/filter",
   authenticateToken,
-  requireRole("USER"),
+  requireRole("user"),
   asyncHandler(filterMenu),
 )
 routes.post(
   "/auth/coupon/add",
   authenticateToken,
-  requireRole("USER"),
+  requireRole("user"),
   authValidation.createCoupon,
   asyncHandler(createCoupon),
 )
 routes.post(
   "/auth/coupon/use",
   authenticateToken,
-  requireRole("USER"),
+  requireRole("user"),
   authValidation.useCoupon,
   asyncHandler(useCoupon),
 )

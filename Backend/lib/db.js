@@ -1,46 +1,73 @@
-import mysql from "mysql2/promise"
-import dotenv from "dotenv"
+import dotenv from "dotenv";
+import pkg from "pg";
 
-dotenv.config()
+dotenv.config();
 
-const pool = mysql.createPool({
-  host: process.env.DATABASE_HOST || "localhost",
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASS,
-  database: process.env.DATABASE_NAME,
-  port: Number(process.env.DATABASE_PORT) || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-})
+const { Pool } = pkg;
+
+// ✅ Create PostgreSQL pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL, // ใช้ URL ที่ Render ให้
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 // Test connection
-pool
-  .getConnection()
-  .then((connection) => {
-    console.log("MySQL database connected successfully")
-    connection.release()
-  })
-  .catch((err) => {
-    console.error("MySQL connection failed:", err.message)
-    process.exit(1)
-  })
+(async () => {
+  try {
+    const client = await pool.connect();
+    console.log("PostgreSQL database connected successfully");
+    client.release();
+  } catch (err) {
+    console.error("PostgreSQL connection failed:", err.message);
+    process.exit(1);
+  }
+})();
 
+// Error handling
 pool.on("error", (err) => {
-  console.error("Unexpected MySQL error:", err)
-  if (err.code === "PROTOCOL_CONNECTION_LOST") {
-    console.error("MySQL connection was lost.")
-  }
-  if (err.code === "ETIMEDOUT") {
-    console.error("MySQL connection timed out.")
-  }
-})
+  console.error("Unexpected PostgreSQL error:", err);
+  process.exit(1);
+});
 
+// Query helper (แทน pool.execute)
 export const executeQuery = async (query, params = []) => {
-  const [rows] = await pool.execute(query, params)
-  return rows
-}
+  const { rows } = await pool.query(query, params);
+  return rows;
+};
 
-export default pool
+// Enhanced query helper with transaction support
+export const executeQueryWithTransaction = async (queries) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    const results = [];
+    for (const { query, params } of queries) {
+      const { rows } = await client.query(query, params);
+      results.push(rows);
+    }
+    
+    await client.query('COMMIT');
+    return results;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+// Single query helper (สำหรับการ query เดี่ยว)
+export const executeSingleQuery = async (query, params = []) => {
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query(query, params);
+    return rows;
+  } finally {
+    client.release();
+  }
+};
+
+export default pool;

@@ -1,22 +1,22 @@
 const constants = {
   // Restaurant queries
-  CheckRestarant: "SELECT id, name, email  FROM restaurants WHERE id = ?",
-  restaurantLogin: "SELECT id, name, email, password FROM restaurants WHERE email = ?",
+  CheckRestarant: "SELECT id, name, email FROM restaurants WHERE id = $1",
+  restaurantLogin: "SELECT id, name, email, password FROM restaurants WHERE email = $1",
   editRestaurant:
-    "UPDATE restaurants SET name = COALESCE(?, name), email = COALESCE(?, email), password = COALESCE(?, password), status = COALESCE(?, status),updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    "UPDATE restaurants SET name = COALESCE($1, name), email = COALESCE($2, email), password = COALESCE($3, password), status = COALESCE($4, status), updated_at = CURRENT_TIMESTAMP WHERE id = $5",
 
   getAllrowMenuByRestaurant: `
   SELECT COUNT(*) AS total FROM menu m 
-  WHERE m.restaurant_id = ? AND m.status = "AVAILABLE"
+  WHERE m.restaurant_id = $1 AND m.status = 'AVAILABLE'
   `,
   findMenuByRestaurant: `
     SELECT image_url FROM menu m 
-    WHERE m.id = ?
+    WHERE m.id = $1
   `,
   getAllrowUserByRestaurant: `
   SELECT COUNT(*) AS total
     FROM users u
-    WHERE u.restaurant_id = ?
+    WHERE u.restaurant_id = $1
   `,
   // User queries
   CheckUser: `
@@ -24,7 +24,7 @@ const constants = {
            e.main_element, e.favorable_elements, e.unfavorable_elements
     FROM users u
     LEFT JOIN user_elements e ON u.id = e.user_id
-    WHERE u.line_uid = ? AND u.restaurant_id = ?
+    WHERE u.line_uid = $1 AND u.restaurant_id = $2
   `,
 
   CheckUserByID: `
@@ -32,50 +32,51 @@ const constants = {
            e.main_element, e.favorable_elements, e.unfavorable_elements
     FROM users u
     LEFT JOIN user_elements e ON u.id = e.user_id
-    WHERE u.id = ?
+    WHERE u.id = $1
   `,
 
   checkUserAlready: `
     SELECT u.id, u.name, u.restaurant_id, e.main_element, e.favorable_elements, e.unfavorable_elements
     FROM users u
     LEFT JOIN user_elements e ON u.id = e.user_id
-    WHERE u.id = ?
+    WHERE u.id = $1
   `,
 
   createNewUser: `
     INSERT INTO users (line_uid, restaurant_id, name, gender, phone, birth_date, birth_time, birth_place, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+    RETURNING *;
   `,
 
   preEditProfile: `
-    SELECT u.name ,u.gender ,u.phone ,DATE_FORMAT(u.birth_date, '%Y-%m-%d') AS birth_date ,u.birth_time ,u.birth_place, ue.main_element
+    SELECT u.name, u.gender, u.phone, TO_CHAR(u.birth_date, 'YYYY-MM-DD') AS birth_date, u.birth_time, u.birth_place, ue.main_element
     FROM users u
     JOIN user_elements ue ON u.id = ue.user_id 
-    WHERE u.id = ?
+    WHERE u.id = $1
   `,
   editProfile:
-    "UPDATE users SET name = COALESCE(?, name), gender = COALESCE(?, gender), phone = COALESCE(?, phone), birth_date = COALESCE(?, birth_date), birth_time = COALESCE(?, birth_time), birth_place = COALESCE(?, birth_place), updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    "UPDATE users SET name = COALESCE($1, name), gender = COALESCE($2, gender), phone = COALESCE($3, phone), birth_date = COALESCE($4, birth_date), birth_time = COALESCE($5, birth_time), birth_place = COALESCE($6, birth_place), updated_at = CURRENT_TIMESTAMP WHERE id = $7",
 
   findUser: `
     SELECT u.id, u.name, u.line_uid, u.phone, u.gender, u.created_at,
            e.main_element, e.favorable_elements
     FROM users u
     LEFT JOIN user_elements e ON u.id = e.user_id
-    WHERE u.restaurant_id = ?
+    WHERE u.restaurant_id = $1
     ORDER BY u.created_at DESC
-    LIMIT ? OFFSET ?
+    LIMIT $2 OFFSET $3
   `,
 
   // User elements queries
   insertElement: `
     INSERT INTO user_elements (user_id, main_element, favorable_elements, unfavorable_elements, created_at)
-    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    VALUES ($1, $2, $3::jsonb, $4::jsonb, CURRENT_TIMESTAMP)
   `,
 
   updateElementAfterEditProfile: `
     UPDATE user_elements 
-    SET main_element = ?, favorable_elements = ?, unfavorable_elements = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE user_id = ?
+    SET main_element = $1, favorable_elements = $2, unfavorable_elements = $3, updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = $4
   `,
 
   coolactElement: `
@@ -89,111 +90,120 @@ const constants = {
   checkPrediction: `
     SELECT prediction_text
     FROM predictions
-    WHERE user_id = ? AND prediction_date = ?
+    WHERE user_id = $1 AND prediction_date = $2
     LIMIT 1
   `,
 
   checkPredictionBefor: `
     SELECT id
     FROM predictions
-    WHERE user_id = ?
+    WHERE user_id = $1
     LIMIT 1
   `,
 
   insertPrediction: `
     INSERT INTO predictions (user_id, prediction_date, prediction_text, created_at)
-    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
   `,
 
   updatePrediction: `
     UPDATE predictions
-    SET prediction_text = ?, prediction_date = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE user_id = ?
+    SET prediction_text = $1, prediction_date = $2, updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = $3
   `,
 
   // Menu queries
   getMenu: `
     SELECT id, name, price, element, image_url, status, created_at
     FROM menu
-    WHERE restaurant_id = ?
+    WHERE restaurant_id = $1
     ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
+    LIMIT $2 OFFSET $3
   `,
 
-  addNewMenu: "INSERT INTO menu (restaurant_id, name,description, price, element, image_url, status) VALUES (?, ?, ?, ?, ?, ?,?)",
+  addNewMenu: "INSERT INTO menu (restaurant_id, name, description, price, element, image_url, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 
   editMenu:
-    "UPDATE menu SET name = COALESCE(?, name), price = COALESCE(?, price), element = COALESCE(?, element), image_url = COALESCE(?, image_url), status = COALESCE(?, status), updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    "UPDATE menu SET name = COALESCE($1, name), price = COALESCE($2, price), element = COALESCE($3, element), image_url = COALESCE($4, image_url), status = COALESCE($5, status), updated_at = CURRENT_TIMESTAMP WHERE id = $6",
 
   deleteMenu: `
-    DELETE FROM menu m WHERE m.id = ?
+    DELETE FROM menu m WHERE m.id = $1
   `,
   getMenuByUser: `
-    SELECT m.id, m.name ,m.price ,m.element ,m.image_url
+    SELECT m.id, m.name, m.price, m.element, m.image_url
     FROM menu m 
     JOIN users u ON m.restaurant_id = u.restaurant_id
-    WHERE u.id = ? AND m.status = "AVAILABLE"
+    WHERE u.id = $1 AND m.status = 'AVAILABLE'
     ORDER BY m.created_at DESC
-    LIMIT ? OFFSET ?
+    LIMIT $2 OFFSET $3
   `,
 
   getAllrowMenu: `
   SELECT COUNT(*) AS total FROM menu m 
   JOIN users u ON m.restaurant_id = u.restaurant_id
-  WHERE u.id = ? AND m.status = "AVAILABLE"
+  WHERE u.id = $1 AND m.status = 'AVAILABLE'
   `,
 
   findMenuElementLike: `
-SELECT m.id, m.name, m.price, m.element , m.image_url
+SELECT m.id, m.name, m.price, m.element, m.image_url
 FROM menu m
 WHERE m.restaurant_id = (
-    SELECT restaurant_id FROM users WHERE id = ?
+    SELECT restaurant_id FROM users WHERE id = $1
 )
 AND m.status = 'AVAILABLE'
 AND EXISTS (
     SELECT 1
     FROM user_elements ue
-    WHERE ue.user_id = ?
-      AND JSON_OVERLAPS(m.element, ue.favorable_elements)
+    WHERE ue.user_id = $2
+      AND m.element ?| (
+          SELECT array_agg(value)
+          FROM jsonb_array_elements_text(ue.favorable_elements)
+      )
 )
 ORDER BY m.created_at DESC
-LIMIT ? OFFSET ?
+LIMIT $3 OFFSET $4;
+
   `,
 
   filterMenu: `
 SELECT m.id, m.name, m.price, m.element, m.image_url
 FROM menu m
-WHERE m.restaurant_id = ? /**element**/
-  AND m.status = 'AVAILABLE'   -- กรองเฉพาะที่สถานะเป็น AVAILABLE
+WHERE m.restaurant_id = $1
+  /**element**/
+  AND m.status = 'AVAILABLE'
 ORDER BY m.price /**price**/
-LIMIT ? OFFSET ?
-
+LIMIT $3 OFFSET $4
     `,
 
   filterMenuCount: `
-    SELECT COUNT(*) AS total
+SELECT COUNT(*) AS total
 FROM menu m
-WHERE m.restaurant_id = ?
+WHERE m.restaurant_id = $1
+  /**element**/
+  AND m.status = 'AVAILABLE'
+
     `,
 
   getAllrowMenuElementLike: `
 SELECT COUNT(*) AS total
 FROM menu m
-WHERE m.restaurant_id = ?
+WHERE m.restaurant_id = $1
   AND m.status = 'AVAILABLE'
   AND EXISTS (
       SELECT 1
       FROM user_elements ue
-      WHERE ue.user_id = ?
-        AND JSON_OVERLAPS(m.element, ue.favorable_elements)
-  )
-
+      WHERE ue.user_id = $2
+        AND m.element ?| (
+            SELECT array_agg(value)
+            FROM jsonb_array_elements_text(ue.favorable_elements)
+        )
+  );
   `,
 
   findMenuelelemet: `
     SELECT id, name, price
     FROM menu
-    WHERE JSON_CONTAINS(element, ?)
+    WHERE element::jsonb @> $1::jsonb
       AND status = 'AVAILABLE'
   `,
 
@@ -201,10 +211,10 @@ WHERE m.restaurant_id = ?
   checkPromotion: `
     SELECT id, discount_value, start_date, end_date
     FROM promotions
-    WHERE id = ?
+    WHERE id = $1
       AND status = 'AVAILABLE'
-      AND start_date <= CURDATE()
-      AND end_date >= CURDATE()
+      AND start_date <= CURRENT_DATE
+      AND end_date >= CURRENT_DATE
     LIMIT 1
   `,
 
@@ -222,7 +232,7 @@ SELECT
 FROM promotions p
 JOIN menu m
   ON p.menu_id = m.id
-WHERE m.restaurant_id = ?
+WHERE m.restaurant_id = $1
 ORDER BY p.promotion_group_id, p.created_at DESC;
 
   `,
@@ -234,13 +244,13 @@ ORDER BY p.promotion_group_id, p.created_at DESC;
 
   createPromotion: `
     INSERT INTO promotions (promotion_group_id, menu_id, description, discount_value, start_date, end_date, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
   `,
 
   getPromotionGroup: `
     SELECT 
       promotion_group_id,
-      GROUP_CONCAT(menu_id) as menu_ids,
+      STRING_AGG(menu_id::text, ',') as menu_ids,
       description,
       discount_value,
       start_date,
@@ -248,50 +258,50 @@ ORDER BY p.promotion_group_id, p.created_at DESC;
       status,
       COUNT(*) as menu_count
     FROM promotions
-    WHERE promotion_group_id = ?
+    WHERE promotion_group_id = $1
     GROUP BY promotion_group_id, description, discount_value, start_date, end_date, status
   `,
 
   updatePromotionGroup: `
     UPDATE promotions
-    SET start_date = COALESCE(?, start_date),
-        end_date = COALESCE(?, end_date),
-        status = COALESCE(?, status),
+    SET start_date = COALESCE($1, start_date),
+        end_date = COALESCE($2, end_date),
+        status = COALESCE($3, status),
         updated_at = CURRENT_TIMESTAMP
-    WHERE promotion_group_id = ?
+    WHERE promotion_group_id = $4
   `,
 
   deletePromotionGroup: `
     DELETE FROM promotions
-    WHERE promotion_group_id = ?
+    WHERE promotion_group_id = $1
   `,
 
   // Coupon queries
   addCoupon: `
     INSERT INTO coupons (user_id, promotion_id, code, status, created_at)
-    VALUES (?, ?, ?, 'UNUSED', CURRENT_TIMESTAMP)
+    VALUES ($1, $2, $3, 'UNUSED', CURRENT_TIMESTAMP)
   `,
 
   checkCoupon: `
     SELECT c.id as coupon_id, c.status, c.code, p.discount_value, p.end_date as expires_at
     FROM coupons c
     INNER JOIN promotions p ON c.promotion_id = p.id
-    WHERE c.code = ?
+    WHERE c.code = $1
     LIMIT 1
   `,
 
   useCoupon: `
     UPDATE coupons
     SET status = 'USED', used_at = CURRENT_TIMESTAMP
-    WHERE id = ?
+    WHERE id = $1
   `,
 
   adminLogin: `
-    SELECT id, email, password, role FROM admins WHERE email = ?
+    SELECT id, email, password, role FROM admins WHERE email = $1
   `,
 
   adminRegisRestaurant: `
-    INSERT INTO restaurants (name, email, password, phone, address)VALUES (?, ?, ?, ?, ?)
+    INSERT INTO restaurants (name, email, password, phone, address) VALUES ($1, $2, $3, $4, $5)
   `,
 }
 

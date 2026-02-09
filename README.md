@@ -42,5 +42,5 @@ npm install react-router-dom zustand axios lucide-react cors
 ## Backend Install
 ```bash
 npm install
-npm install nodemon mysql2 bcrypt axios dotenv express multer cloudinary multer-storage-cloudinary
+npm install nodemon mysql2 bcrypt axios dotenv express multer cloudinary multer-storage-cloudinary pg
 ```

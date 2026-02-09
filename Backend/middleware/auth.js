@@ -54,7 +54,6 @@ export const requireRole = (roles) => (req, res, next) => {
   }
 
   const allowed = Array.isArray(roles) ? roles : [roles]
-
   if (!allowed.includes(req.user.userType)) {
     return res.status(403).json({ message: "Forbidden" })
   }

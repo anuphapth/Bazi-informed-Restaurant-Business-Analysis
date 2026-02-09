@@ -33,37 +33,37 @@ const routes = express.Router()
 routes.post("/restaurant/login", restaurantValidation.login, asyncHandler(login))
 routes.post("/restaurant/refresh", asyncHandler(refreshAccessToken))
 routes.post("/restaurant/logout", asyncHandler(logout))
-routes.post("/restaurant/logout-all", authenticateToken, requireRole("restaurant"), asyncHandler(logoutAllDevices))
+routes.post("/restaurant/logout-all", authenticateToken, requireRole("RESTAURANT"), asyncHandler(logoutAllDevices))
 
 routes.post("/restaurant/info",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   asyncHandler(preEdit)
 )
 routes.put(
   "/restaurant/edit",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   restaurantValidation.editRestaurant,
   asyncHandler(editRestaurant),
 )
 routes.post(
   "/restaurant/create/user",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   asyncHandler(regisUserbyRestaurant),
 )
 routes.post(
   "/restaurant/menu",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   restaurantValidation.menu,
   asyncHandler(menu),
 )
 routes.post(
   "/restaurant/add/menu",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   upload.single("image"),
   restaurantValidation.addNewMenu,
   asyncHandler(addNewMenu),
@@ -71,7 +71,7 @@ routes.post(
 routes.put(
   "/restaurant/edit/menu",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   upload.single("image"),
   restaurantValidation.editMenu,
   asyncHandler(editMenu),
@@ -79,48 +79,48 @@ routes.put(
 routes.delete(
   "/restaurant/delete/menu",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   restaurantValidation.deleteMenuByRestaurant,
   asyncHandler(deleteMenuByRestaurant),
 )
 routes.post(
   "/restaurant/promotion/create",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   restaurantValidation.createPromotion,
   asyncHandler(createPromotion),
 )
 routes.get(
   "/restaurant/promotion/get/all",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   asyncHandler(getAllPromotion),
 )
 routes.get(
   "/restaurant/promotionGroup/get/:group_id",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   restaurantValidation.getPromotionGroup,
   asyncHandler(getPromotionGroup),
 )
 routes.put(
   "/restaurant/promotionGroup/update",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   restaurantValidation.updatePromotionGroup,
   asyncHandler(updatePromotionGroup),
 )
 routes.delete(
   "/restaurant/promotionGroup/delete/:group_id",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   restaurantValidation.deletePromotionGroup,
   asyncHandler(deletePromotionGroup),
 )
 routes.post(
   "/restaurant/restaurantUser",
   authenticateToken,
-  requireRole("restaurant"),
+  requireRole("RESTAURANT"),
   restaurantValidation.restaurantUser,
   asyncHandler(restaurantUser),
 )

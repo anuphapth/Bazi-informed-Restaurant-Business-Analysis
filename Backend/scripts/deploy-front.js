@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const backendRoot = process.cwd();        // Backend
+const backendRoot = process.cwd();
 const projectRoot = path.resolve(backendRoot, "..");
 
 const possibleDirs = ["dist", "build"];
@@ -16,15 +16,15 @@ for (const dir of possibleDirs) {
 }
 
 if (!distPath) {
-  throw new Error("❌ Cannot find Frontend build output (dist or build)");
+  throw new Error("Cannot find Frontend build output (dist or build)");
 }
 
 const backendPublicPath = path.join(backendRoot, "public");
 
-console.log("🧹 Clean Backend/public...");
+console.log("Clean Backend/public...");
 fs.rmSync(backendPublicPath, { recursive: true, force: true });
 
-console.log(`📦 Copy ${distPath} → Backend/public...`);
+console.log(`Copy ${distPath} → Backend/public...`);
 fs.cpSync(distPath, backendPublicPath, { recursive: true });
 
-console.log("✅ Frontend copied successfully");
+console.log("Frontend copied successfully");

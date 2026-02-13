@@ -24,8 +24,9 @@ export const login = async (req, res) => {
         userId: result.restaurant.id,
         email: email,
       },
-      tokens: result.tokens,
-    })
+      tokens: { accessToken: result.tokens.accessToken }
+    });
+
   } catch (error) {
     if (error.message === 'Invalid email or password') {
       return res.status(401).json({ message: error.message })
@@ -105,9 +106,27 @@ export const createRestaurant = async (req, res) => {
 export const getAllRestaurant = async (req, res) => {
   try {
     const result = await adminService.getAllRestaurant()
-    return res.status(200).message.json({result})
+    return res.status(200).json(result)
   } catch (error) {
     console.error('[getAllRestaurant Error]', error)
+    return res.status(500).json({ message: 'Server error' })
+  }
+}
+
+export const updateUserByAdmin = async (req, res) => {
+  try {
+    const data = req.body || {}
+    if (!Object.keys(data).length) {
+      return res.status(400).json({ message: "Request body is required" })
+    }
+
+    const updateResult = await adminService.updateUserByAdmin(data)
+    return res.status(200).json({ message: "Update successful" })
+  } catch (error) {
+    if (error.message === 'User not found') {
+      return res.status(404).json({ message: error.message })
+    }
+    console.error('[updateUserByAdmin Error]', error)
     return res.status(500).json({ message: 'Server error' })
   }
 }

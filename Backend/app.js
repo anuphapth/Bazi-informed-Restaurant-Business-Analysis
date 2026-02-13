@@ -13,13 +13,20 @@ const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+
+const allowedOrigins = process.env.ALLOW_URL
+  ? process.env.ALLOW_URL.split(",")
+  : [];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
-app.use(morgan("dev"));
+app.use(morgan("combined"));
 
 // API routes
 const routeFiles = readdirSync("./routes");

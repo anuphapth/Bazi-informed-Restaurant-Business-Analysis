@@ -182,6 +182,7 @@ export const restaurantValidation = {
   ],
 
   createPromotion: [
+    body("name").trim().isString().withMessage("Name is required"),
     body("element").isArray().notEmpty().withMessage("Element array is required"),
     body("description").optional().trim().isString().isLength({ max: 500 }),
     body("discount_value").isFloat({ min: 0, max: 100 }).withMessage("Discount must be between 0-100"),

@@ -47,6 +47,7 @@ routes.post(
   requireRole("user"),
   asyncHandler(prediction),
 )
+
 routes.post(
   "/auth/menu",
   authenticateToken,
@@ -54,6 +55,7 @@ routes.post(
   authValidation.page,
   asyncHandler(menu),
 )
+
 routes.post(
   "/auth/menu/like",
   authenticateToken,
@@ -61,12 +63,14 @@ routes.post(
   authValidation.page,
   asyncHandler(findMenu),
 )
+
 routes.post(
   "/auth/menu/filter",
   authenticateToken,
   requireRole("user"),
   asyncHandler(filterMenu),
 )
+
 routes.post(
   "/auth/coupon/add",
   authenticateToken,

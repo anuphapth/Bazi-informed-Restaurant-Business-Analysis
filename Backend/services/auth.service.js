@@ -32,7 +32,7 @@ class AuthService {
 
     const checkRestaurant = await this.authRepo.checkRestaurant(restaurantId)
     if (checkRestaurant.length === 0) {
-      throw new Error('Restaurant not found')
+      return { action: 'RestaurantNotFound' }
     }
 
     const checkUser = await this.authRepo.getUserByLineUidAndRestaurant(lineUid, restaurantId)
@@ -68,6 +68,7 @@ class AuthService {
         refreshToken,
       },
     }
+
   }
 
   async register(data, token) {
@@ -399,7 +400,7 @@ class AuthService {
     return { lastPage, menu: menu || [] }
   }
 
-  async filterMenu(restaurantId, element, price, page) {
+  async filterMenu(restaurantId, userId, element, price, page) {
     const limit = 12
     const offset = (page - 1) * limit
 
@@ -407,29 +408,41 @@ class AuthService {
       price = 'asc'
     }
 
-    const result = await this.authRepo.filterMenu(restaurantId, element, price, limit, offset)
+    const result = await this.authRepo.filterMenu(
+      restaurantId,
+      userId,
+      element,
+      price,
+      limit,
+      offset
+    )
+
     const lastPage = Math.ceil(result.rows[0].total / limit)
 
     return {
       lastPage,
-      menu: result.menu,
+      menu: result.menu
     }
   }
 
+
   async createCoupon(userId, promotionId) {
+
     const promotion = await this.authRepo.checkPromotion(promotionId)
+
     if (promotion.length === 0) {
       throw new Error('Promotion is not active or does not exist')
     }
 
-    const randomBytes = crypto.randomBytes(4).toString('hex').toUpperCase()
-    const code = `PROMO-${randomBytes}`
+    const existing = await this.authRepo.checkUserCoupon(userId, promotionId)
 
-    await this.authRepo.addCoupon({
-      userId,
-      promotionId,
-      code
-    })
+    if (existing.length > 0) {
+      throw new Error('You already claimed this promotion')
+    }
+
+    const code = `PROMO-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
+
+    await this.authRepo.addCoupon({ userId, promotionId, code })
 
     return { message: 'Coupon created', code }
   }
@@ -438,7 +451,7 @@ class AuthService {
     const rows = await this.authRepo.checkCoupon(code)
 
     if (rows.length === 0) {
-      throw new Error('Invalid or expired coupon')
+      throw new Error('Invalid coupon')
     }
 
     const coupon = rows[0]
@@ -447,13 +460,26 @@ class AuthService {
       throw new Error('Coupon already used')
     }
 
+    if (coupon.promotion_status !== 'AVAILABLE') {
+      throw new Error('Promotion is not available')
+    }
+
+    const today = new Date()
+    const startDate = new Date(coupon.start_date)
+    const endDate = new Date(coupon.end_date)
+
+    if (today < startDate || today > endDate) {
+      throw new Error('Coupon expired')
+    }
+
     await this.authRepo.useCoupon(coupon.coupon_id)
 
     return {
       message: 'Coupon applied successfully',
-      discount_value: coupon.discount_value,
+      discount_value: coupon.discount_value
     }
   }
+
 
   async refreshAccessToken(refreshToken) {
     if (!refreshToken) {

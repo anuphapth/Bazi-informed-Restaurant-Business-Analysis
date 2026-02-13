@@ -7,7 +7,13 @@ export const login = async (req, res) => {
     const { email, password } = req.body
 
     const result = await restaurantService.login(email, password)
-    
+
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: false,
+      path: '/api/restaurant',
+    })
     return res.status(200).json({
       message: 'Login successful',
       user: {
@@ -15,7 +21,7 @@ export const login = async (req, res) => {
         name: result.restaurant.name,
         email: result.restaurant.email,
       },
-      tokens: result.tokens,
+      tokens: { accessToken: result.tokens.accessToken },
     })
   } catch (error) {
     console.error('[Restaurant Login Error]', error)
@@ -104,16 +110,26 @@ export const deleteMenuByRestaurant = async (req, res) => {
 
 export const createPromotion = async (req, res) => {
   try {
-    const result = await restaurantService.createPromotion(req.body)
-    return res.status(201).json(result)
+    const restaurantId = req.user.restaurantId
+
+    const result = await restaurantService.createPromotion(
+      req.body,
+      restaurantId
+    );
+
+    return res.status(201).json(result);
   } catch (error) {
-    console.error('[CreatePromotion Error]', error)
-    if (error.message === 'No menus match the specified elements') {
-      return res.status(404).json({ message: error.message })
+    if (error.message === 'Discount Error') {
+      return res.status(400).json({ message: error.message });
     }
-    return res.status(500).json({ message: 'Server error' })
+    if (error.message === 'No menus match the specified elements') {
+      return res.status(404).json({ message: error.message });
+    }
+
+    console.error('[CreatePromotion Error]', error);
+    return res.status(500).json({ message: 'Server error' });
   }
-}
+};
 
 export const getAllPromotion = async (req, res) => {
   try {
@@ -185,14 +201,22 @@ export const restaurantUser = async (req, res) => {
 
 export const refreshAccessToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body
-    const authHeader = req.headers.authorization
-    const accessToken = authHeader && authHeader.split(' ')[1]
+    const refreshToken = req.cookies.refreshToken
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        message: 'No refresh token',
+      })
+    }
 
     const result = await restaurantService.refreshAccessToken(refreshToken)
+
     return res.status(200).json(result)
   } catch (error) {
-    if (error.message === 'Refresh token expired' || error.message === 'Refresh token not found or expired') {
+    if (
+      error.message === 'Refresh token expired' ||
+      error.message === 'Refresh token not found or expired'
+    ) {
       return res.status(401).json({
         message: 'Refresh token expired',
         code: 'REFRESH_TOKEN_EXPIRED',
@@ -243,7 +267,7 @@ export const regisUserbyRestaurant = async (req, res) => {
     const result = await restaurantService.regisUserbyRestaurant(restaurantId)
     return res.status(200).json(result)
   } catch (error) {
-    console.error('[Menu Error]', error)
+    console.error('[regisUserbyRestaurant Error]', error)
     return res.status(500).json({ message: 'Server error' })
   }
 }

@@ -90,13 +90,13 @@ routes.post(
   restaurantValidation.createPromotion,
   asyncHandler(createPromotion),
 )
-routes.get(
+routes.post(
   "/restaurant/promotion/get/all",
   authenticateToken,
   requireRole("RESTAURANT"),
   asyncHandler(getAllPromotion),
 )
-routes.get(
+routes.post(
   "/restaurant/promotionGroup/get/:group_id",
   authenticateToken,
   requireRole("RESTAURANT"),

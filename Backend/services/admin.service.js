@@ -11,48 +11,67 @@ class AdminService {
   constructor() {
     this.adminRepo = new AdminRepository()
   }
-  
+
   async login(email, password) {
     const restaurant = await this.adminRepo.getAdminByEmail(email)
     if (!restaurant.length) {
       throw new Error('Invalid email or password')
     }
-    
+
     const isMatch = await bcrypt.compare(String(password), String(restaurant[0].password))
     if (!isMatch) {
       throw new Error('Invalid email or password')
     }
-    
+
     const accessToken = generateAccessToken({
       userId: restaurant[0].id,
       userType: 'ADMIN',
     })
-    
+
     const refreshToken = await generateRefreshToken(restaurant[0].id, 'ADMIN', {
       deviceInfo: 'web',
       ipAddress: '127.0.0.1',
     })
-    
+
     return {
       restaurant: restaurant[0],
-      tokens: { accessToken, refreshToken }
+      tokens: { accessToken,refreshToken }
     }
   }
-  
+
   async createRestaurant(data) {
     const existingRestaurant = await this.adminRepo.checkRestaurantExists(data.email)
     if (existingRestaurant.length > 0) {
       throw new Error('Duplicate Email')
     }
-    
+
     const hashedPassword = await bcrypt.hash(data.password, 12)
     const restaurantData = { ...data, password: hashedPassword }
-    
+
     return await this.adminRepo.createRestaurant(restaurantData)
   }
-  
-  async getAllRestaurant (){
-    return await this.adminRepo.getAllRestaurantByAdmin
+
+  async getAllRestaurant() {
+    return await this.adminRepo.getAllRestaurantByAdmin()
+  }
+
+  async checkUserExiting(data) {
+    if (!data || !data.id) {
+      throw new Error('User id is required')
+    }
+
+    const checkUser = await this.adminRepo.getUserById(data.id)
+
+    if (checkUser.length === 0) {
+      throw new Error('User not found')
+    }
+
+    return checkUser[0]
+  }
+
+  async updateUserByAdmin(data) {
+    await this.checkUserExiting(data)
+    return await this.adminRepo.updateUserByAdmin(data)
   }
 
   async logout(accessToken, refreshToken) {

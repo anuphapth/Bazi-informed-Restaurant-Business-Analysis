@@ -5,11 +5,11 @@ class RestaurantRepository {
   async getRestaurantByEmail(email) {
     return await executeQuery(constants.restaurantLogin, [email])
   }
-  
+
   async getRestaurantById(id) {
     return await executeQuery(constants.CheckRestarant, [id])
   }
-  
+
   async editRestaurant(data) {
     return await executeQuery(constants.editRestaurant, [
       data.name,
@@ -19,15 +19,15 @@ class RestaurantRepository {
       data.restaurantId
     ])
   }
-  
+
   async getMenu(restaurantId, limit, offset) {
     return await executeQuery(constants.getMenu, [restaurantId, limit, offset])
   }
-  
+
   async getAllMenuRows(restaurantId) {
     return await executeQuery(constants.getAllrowMenuByRestaurant, [restaurantId])
   }
-  
+
   async addNewMenu(data) {
     return await executeQuery(constants.addNewMenu, [
       data.restaurantId,
@@ -39,11 +39,11 @@ class RestaurantRepository {
       data.status
     ])
   }
-  
+
   async findMenuById(menuId) {
     return await executeQuery(constants.findMenuByRestaurant, [menuId])
   }
-  
+
   async editMenu(data) {
     return await executeQuery(constants.editMenu, [
       data.name,
@@ -51,63 +51,85 @@ class RestaurantRepository {
       data.element,
       data.image_url,
       data.status,
+      data.description,
       data.menuId
     ])
   }
-  
+
   async deleteMenu(menuId) {
     return await executeQuery(constants.deleteMenu, [menuId])
   }
-  
-  async findMenuByElement(element) {
-    return await executeQuery(constants.findMenuelelemet, [JSON.stringify(element)])
+
+  async findMenuByElement(client, element) {
+    const { rows } = await client.query(constants.findMenuelelemet, [JSON.stringify(element)]);
+    return rows;
   }
-  
-  async createGroupPromotion() {
-    return await executeQuery(constants.createGroupPromotion)
-  }
-  
-  async createPromotion(data) {
-    return await executeQuery(constants.createPromotion, [
-      data.promotionGroupId,
-      data.menuId,
+
+  async createGroupPromotion(client, data) {
+    const result = await client.query(constants.createGroupPromotion, [
+      data.restaurant_id,
+      data.name,
       data.description,
       data.discount_value,
       data.start_date,
       data.end_date,
-      data.status
-    ])
+    ]
+    );
+
+    return result.rows[0].id;
   }
-  
+
+  async createPromotionMapping(client, groupId, menuId) {
+    await client.query(
+      constants.createPromotionMapping,
+      [groupId, menuId]
+    );
+  }
+
   async getAllPromotionByRestaurant(restaurantId) {
     return await executeQuery(constants.getAllPromotionByRestaurant, [restaurantId])
   }
-  
+
   async getPromotionGroup(groupId) {
     return await executeQuery(constants.getPromotionGroup, [groupId])
   }
-  
+
   async updatePromotionGroup(data) {
-    return await executeQuery(constants.updatePromotionGroup, [
-      data.start_date,
-      data.end_date,
-      data.status,
-      data.groupId
-    ])
+    const result = await executeQuery(
+      constants.updatePromotionGroup,
+      [
+        data.name,
+        data.description,
+        data.discount_value,
+        data.start_date,
+        data.end_date,
+        data.status,
+        data.groupId
+      ]
+    );
+
+    return result;
   }
-  
+
+
   async deletePromotionGroup(groupId) {
-    return await executeQuery(constants.deletePromotionGroup, [groupId])
-  }
-  
+  const result = await executeQuery(
+    constants.deletePromotionGroup,
+    [groupId]
+  );
+
+  return result;
+}
+
+
   async findUser(restaurantId, limit, offset) {
     return await executeQuery(constants.findUser, [restaurantId, limit, offset])
   }
-  
+
   async getAllUserRows(restaurantId) {
     return await executeQuery(constants.getAllrowUserByRestaurant, [restaurantId])
   }
-  
+
   async collectElement() {
     return await executeQuery(constants.coolactElement)
   }

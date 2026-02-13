@@ -6,13 +6,26 @@ export const lineUIDCheck = async (req, res) => {
   try {
     const { lineUid } = req.body
     const token = req.query.t
-
     const result = await authService.lineUIDCheck(lineUid, token)
+    if (result.action === 'RestaurantNotFound') {
+      return res.status(404).json({ action: 'Restaurant not found' })
+    }
     if (result.action === 'Register') {
       return res.status(404).json({ action: 'Register' })
     }
-    
-    return res.status(200).json(result)
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      path: '/api/auth',
+    })
+    return res.status(200).json({
+      action: 'LOGIN',
+      user: result.user,
+      bazi: result.bazi,
+      tokens: { accessToken: result.tokens.accessToken },
+    })
+
   } catch (error) {
     console.error('[lineUIDCheck Error]', error)
     if (error.message === 'Restaurant not found') {
@@ -121,7 +134,15 @@ export const filterMenu = async (req, res) => {
   try {
     const { element, price = 'asc', page = 1 } = req.body
     const restaurantId = req.user.restaurantId
-    const result = await authService.filterMenu(restaurantId, element, price, page)
+    const userId = req.user.id
+
+    const result = await authService.filterMenu(
+      restaurantId,
+      userId,
+      element,
+      price,
+      page
+    )
     return res.status(200).json(result)
   } catch (error) {
     console.error('[filterMenu Error]', error)
@@ -133,33 +154,46 @@ export const createCoupon = async (req, res) => {
   try {
     const { promotion_id } = req.body
     const userID = req.user.id
+
     const result = await authService.createCoupon(userID, promotion_id)
+
     return res.status(201).json(result)
+
   } catch (error) {
-    console.error('[CreateCoupon Error]', error)
-    if (error.message === 'Promotion is not active or does not exist') {
+    if (error.message.includes('Promotion') ||
+      error.message.includes('already')) {
       return res.status(400).json({ message: error.message })
     }
+    console.error('[CreateCoupon Error]', error)
     return res.status(500).json({ message: 'Server error' })
   }
 }
 
+
 export const useCoupon = async (req, res) => {
   try {
     const { code } = req.body
+
     const result = await authService.useCoupon(code)
+
     return res.status(200).json(result)
+
   } catch (error) {
     console.error('[UseCoupon Error]', error)
-    if (error.message === 'Invalid or expired coupon') {
+
+    if (
+      error.message.includes('Invalid') ||
+      error.message.includes('expired') ||
+      error.message.includes('already') ||
+      error.message.includes('available')
+    ) {
       return res.status(400).json({ message: error.message })
     }
-    if (error.message === 'Coupon already used') {
-      return res.status(400).json({ message: error.message })
-    }
+
     return res.status(500).json({ message: 'Server error' })
   }
 }
+
 
 export const refreshAccessToken = async (req, res) => {
   try {

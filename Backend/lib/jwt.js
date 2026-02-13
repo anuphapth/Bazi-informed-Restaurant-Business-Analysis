@@ -40,8 +40,7 @@ export const generateRefreshToken = async (userId, userType, metadata = {}) => {
   const jti = crypto.randomBytes(32).toString("hex")
   const tokenHash = crypto.createHash("sha256").update(jti).digest("hex")
 
-  const refreshToken = jwt.sign(
-    {
+  const refreshToken = jwt.sign({
       jti,
       userId,
       userType,

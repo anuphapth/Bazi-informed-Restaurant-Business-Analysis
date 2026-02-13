@@ -130,12 +130,97 @@ const constants = {
     DELETE FROM menu m WHERE m.id = $1
   `,
   getMenuByUser: `
-    SELECT m.id, m.name, m.description, m.price, m.element, m.image_url
-    FROM menu m 
-    JOIN users u ON m.restaurant_id = u.restaurant_id
-    WHERE u.id = $1 AND m.status = 'AVAILABLE'
-    ORDER BY m.created_at DESC
-    LIMIT $2 OFFSET $3
+SELECT 
+  m.id,
+  m.name,
+  m.description,
+  m.price,
+  m.element,
+  m.image_url,
+
+  COALESCE(
+    json_agg(
+      DISTINCT jsonb_strip_nulls(
+        jsonb_build_object(
+          'promotion_id', ap.id,
+          'name', ap.name,
+          'description', ap.description,
+          'end_date', ap.end_date,
+
+          -- แสดงเป็น 100%
+          'discount', ap.discount_value::text || '%',
+
+          -- คำนวณราคารวมหลังลด
+          'total',
+            ROUND(
+              m.price - (m.price * ap.discount_value / 100.0),
+              2
+            ),
+
+          'coupon_code', ap.coupon_code
+        )
+      )
+    ) FILTER (WHERE ap.id IS NOT NULL),
+    '[]'
+  ) AS promotions,
+
+  CASE 
+    WHEN COUNT(ap.id) > 0 THEN true
+    ELSE false
+  END AS "canUsePromotion"
+
+FROM menu m
+
+JOIN users u 
+  ON m.restaurant_id = u.restaurant_id
+
+LEFT JOIN (
+    SELECT DISTINCT ON (pg.id, p.menu_id)
+
+        p.id,
+        p.menu_id,
+
+        pg.name,
+        pg.description,
+        pg.discount_value,
+        pg.end_date,
+
+        c.code AS coupon_code
+
+    FROM promotions p
+
+    JOIN promotion_groups pg
+        ON pg.id = p.promotion_group_id
+
+    LEFT JOIN coupons c
+        ON c.promotion_id = p.id
+        AND c.user_id = $1
+        AND c.status = 'UNUSED'
+
+    WHERE pg.status = 'AVAILABLE'
+      AND (NOW() AT TIME ZONE 'Asia/Bangkok')
+          BETWEEN pg.start_date AND pg.end_date
+
+      AND NOT EXISTS (
+          SELECT 1
+          FROM coupons cu
+          WHERE cu.promotion_id = p.id
+            AND cu.user_id = $1
+            AND cu.status = 'USED'
+      )
+
+    ORDER BY pg.id, p.menu_id, p.id DESC
+
+) ap ON ap.menu_id = m.id
+
+
+WHERE u.id = $1
+  AND m.status = 'AVAILABLE'
+
+GROUP BY m.id
+
+ORDER BY m.created_at DESC
+LIMIT $2 OFFSET $3;
   `,
 
   getAllrowMenu: `
@@ -145,12 +230,91 @@ const constants = {
   `,
 
   findMenuElementLike: `
-SELECT m.id, m.name,m.description, m.price, m.element, m.image_url
+SELECT 
+  m.id,
+  m.name,
+  m.description,
+  m.price,
+  m.element,
+  m.image_url,
+
+  COALESCE(
+    json_agg(
+      DISTINCT jsonb_strip_nulls(
+        jsonb_build_object(
+          'promotion_id', ap.id,
+          'name', ap.name,
+          'description', ap.description,
+          'end_date', ap.end_date,
+          'discount', ap.discount_value::text || '%',
+          'total',
+            ROUND(
+              m.price - (m.price * ap.discount_value / 100.0),
+              2
+            ),
+          'coupon_code', ap.coupon_code
+        )
+      )
+    ) FILTER (WHERE ap.id IS NOT NULL),
+    '[]'
+  ) AS promotions,
+
+  CASE 
+    WHEN COUNT(ap.id) > 0 THEN true
+    ELSE false
+  END AS "canUsePromotion"
+
 FROM menu m
+
+-- 🔥 promotion join
+LEFT JOIN (
+    SELECT DISTINCT ON (pg.id, p.menu_id)
+
+        p.id,
+        p.menu_id,
+
+        pg.name,
+        pg.description,
+        pg.discount_value,
+        pg.end_date,
+
+        c.code AS coupon_code
+
+    FROM promotions p
+
+    JOIN promotion_groups pg
+        ON pg.id = p.promotion_group_id
+
+    LEFT JOIN coupons c
+        ON c.promotion_id = p.id
+        AND c.user_id = $2
+        AND c.status = 'UNUSED'
+
+    WHERE pg.status = 'AVAILABLE'
+
+      AND (NOW() AT TIME ZONE 'Asia/Bangkok')
+          BETWEEN pg.start_date AND pg.end_date
+
+      -- ตัด USED ออก
+      AND NOT EXISTS (
+          SELECT 1
+          FROM coupons cu
+          WHERE cu.promotion_id = p.id
+            AND cu.user_id = $2
+            AND cu.status = 'USED'
+      )
+
+    ORDER BY pg.id, p.menu_id, p.id DESC
+
+) ap ON ap.menu_id = m.id
+
 WHERE m.restaurant_id = (
     SELECT restaurant_id FROM users WHERE id = $1
 )
+
 AND m.status = 'AVAILABLE'
+
+-- 🔥 filter element like เดิม
 AND EXISTS (
     SELECT 1
     FROM user_elements ue
@@ -160,29 +324,116 @@ AND EXISTS (
           FROM jsonb_array_elements_text(ue.favorable_elements)
       )
 )
+
+GROUP BY m.id
+
 ORDER BY m.created_at DESC
 LIMIT $3 OFFSET $4;
-
   `,
 
   filterMenu: `
-SELECT m.id, m.name,m.description, m.price, m.element, m.image_url
+SELECT 
+  m.id,
+  m.name,
+  m.description,
+  m.price,
+  m.element,
+  m.image_url,
+
+  COALESCE(
+    json_agg(
+      DISTINCT jsonb_strip_nulls(
+        jsonb_build_object(
+          'promotion_id', ap.id,
+          'name', ap.name,
+          'description', ap.description,
+          'end_date', ap.end_date,
+          'discount', ap.discount_value::text || '%',
+          'total',
+            ROUND(
+              m.price - (m.price * ap.discount_value / 100.0),
+              2
+            ),
+          'coupon_code', ap.coupon_code
+        )
+      )
+    ) FILTER (WHERE ap.id IS NOT NULL),
+    '[]'
+  ) AS promotions,
+
+  CASE 
+    WHEN COUNT(ap.id) > 0 THEN true
+    ELSE false
+  END AS "canUsePromotion"
+
 FROM menu m
-WHERE m.restaurant_id = $1
-  /**element**/
+
+LEFT JOIN (
+    SELECT DISTINCT ON (pg.id, p.menu_id)
+
+        p.id,
+        p.menu_id,
+
+        pg.name,
+        pg.description,
+        pg.discount_value,
+        pg.end_date,
+
+        c.code AS coupon_code
+
+    FROM promotions p
+
+    JOIN promotion_groups pg
+        ON pg.id = p.promotion_group_id
+
+    LEFT JOIN coupons c
+        ON c.promotion_id = p.id
+        AND c.user_id = $2
+        AND c.status = 'UNUSED'
+
+    WHERE pg.status = 'AVAILABLE'
+      AND (NOW() AT TIME ZONE 'Asia/Bangkok')
+          BETWEEN pg.start_date AND pg.end_date
+
+      AND NOT EXISTS (
+          SELECT 1
+          FROM coupons cu
+          WHERE cu.promotion_id = p.id
+            AND cu.user_id = $2
+            AND cu.status = 'USED'
+      )
+
+    ORDER BY pg.id, p.menu_id, p.id DESC
+
+) ap ON ap.menu_id = m.id
+
+WHERE
+  m.restaurant_id = $1
   AND m.status = 'AVAILABLE'
-ORDER BY m.price /**price**/
-LIMIT $3 OFFSET $4
-    `,
+  AND (
+        $3::text[] IS NULL
+        OR m.element ?| $3::text[]
+      )
+
+GROUP BY m.id
+
+ORDER BY m.price %%ORDER%%
+
+LIMIT $4 OFFSET $5
+`,
 
   filterMenuCount: `
-SELECT COUNT(*) AS total
+SELECT COUNT(*)::int AS total
 FROM menu m
-WHERE m.restaurant_id = $1
-  /**element**/
+WHERE
+  m.restaurant_id = $1
   AND m.status = 'AVAILABLE'
+  AND (
+      $2::text[] IS NULL
+      OR m.element ?| $2::text[]
+    )
+`,
 
-    `,
 
   getAllrowMenuElementLike: `
 SELECT COUNT(*) AS total
@@ -209,72 +460,98 @@ WHERE m.restaurant_id = $1
 
   // Promotion queries
   checkPromotion: `
-    SELECT id, discount_value, start_date, end_date
-    FROM promotions
-    WHERE id = $1
-      AND status = 'AVAILABLE'
-      AND start_date <= CURRENT_DATE
-      AND end_date >= CURRENT_DATE
-    LIMIT 1
-  `,
+ SELECT p.id
+FROM promotions p
+JOIN promotion_groups pg
+  ON pg.id = p.promotion_group_id
+WHERE p.id = $1
+  AND pg.status = 'AVAILABLE'
+  AND CURRENT_DATE BETWEEN pg.start_date AND pg.end_date
+LIMIT 1
+`,
+
+  checkUserCoupon: `
+        SELECT id FROM coupons
+     WHERE user_id = $1 AND promotion_id = $2
+     LIMIT 1
+`,
+
 
   getAllPromotionByRestaurant: `
 SELECT
-  p.promotion_group_id,
-  p.id               AS promotion_id,
-  p.description,
-  p.discount_value,
-  p.start_date,
-  p.end_date,
-  p.status,
-  p.created_at,
-  p.updated_at
-FROM promotions p
-JOIN menu m
+  pg.id AS promotion_group_id,
+  pg.name,
+  pg.description,
+  pg.discount_value,
+  pg.start_date,
+  pg.end_date,
+  pg.status,
+  pg.created_at,
+  pg.updated_at,
+  m.id AS menu_id,
+  m.name AS menu_name,
+  m.price AS menu_price
+FROM promotion_groups pg
+LEFT JOIN promotions p
+  ON pg.id = p.promotion_group_id
+LEFT JOIN menu m
   ON p.menu_id = m.id
-WHERE m.restaurant_id = $1
-ORDER BY p.promotion_group_id, p.created_at DESC;
-
+WHERE pg.restaurant_id = $1
+ORDER BY pg.id, m.name;
   `,
 
   createGroupPromotion: `
-    SELECT COALESCE(MAX(promotion_group_id), 0) + 1 as nextGroup
-    FROM promotions
-  `,
-
-  createPromotion: `
-    INSERT INTO promotions (promotion_group_id, menu_id, description, discount_value, start_date, end_date, status)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-  `,
+  INSERT INTO promotion_groups
+  (restaurant_id, name, description, discount_value, start_date, end_date, status)
+  VALUES ($1, $2, $3, $4, $5, $6, 'AVAILABLE')
+  RETURNING id
+`,
+  createPromotionMapping: `
+  INSERT INTO promotions (promotion_group_id, menu_id)
+  VALUES ($1, $2)
+`,
 
   getPromotionGroup: `
-    SELECT 
-      promotion_group_id,
-      STRING_AGG(menu_id::text, ',') as menu_ids,
-      description,
-      discount_value,
-      start_date,
-      end_date,
-      status,
-      COUNT(*) as menu_count
-    FROM promotions
-    WHERE promotion_group_id = $1
-    GROUP BY promotion_group_id, description, discount_value, start_date, end_date, status
-  `,
+SELECT 
+  pg.id AS promotion_group_id,
+  pg.name,
+  pg.description,
+  pg.discount_value,
+  pg.start_date,
+  pg.end_date,
+  pg.status,
+  pg.created_at,
+  pg.updated_at,
+  m.id AS menu_id,
+  m.name AS menu_name,
+  m.price AS menu_price
+FROM promotion_groups pg
+LEFT JOIN promotions p
+  ON pg.id = p.promotion_group_id
+LEFT JOIN menu m
+  ON p.menu_id = m.id
+WHERE pg.id = $1
+ORDER BY m.name;
+`,
 
   updatePromotionGroup: `
-    UPDATE promotions
-    SET start_date = COALESCE($1, start_date),
-        end_date = COALESCE($2, end_date),
-        status = COALESCE($3, status),
-        updated_at = CURRENT_TIMESTAMP
-    WHERE promotion_group_id = $4
-  `,
+UPDATE promotion_groups
+SET name = COALESCE($1, name),
+    description = COALESCE($2, description),
+    discount_value = COALESCE($3, discount_value),
+    start_date = COALESCE($4, start_date),
+    end_date = COALESCE($5, end_date),
+    status = COALESCE($6, status),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $7
+RETURNING id;
+`,
 
   deletePromotionGroup: `
-    DELETE FROM promotions
-    WHERE promotion_group_id = $1
-  `,
+DELETE FROM promotion_groups
+WHERE id = $1
+RETURNING id;
+`,
 
   // Coupon queries
   addCoupon: `
@@ -283,11 +560,21 @@ ORDER BY p.promotion_group_id, p.created_at DESC;
   `,
 
   checkCoupon: `
-    SELECT c.id as coupon_id, c.status, c.code, p.discount_value, p.end_date as expires_at
-    FROM coupons c
-    INNER JOIN promotions p ON c.promotion_id = p.id
-    WHERE c.code = $1
-    LIMIT 1
+  SELECT 
+  c.id as coupon_id,
+  c.status,
+  c.code,
+  pg.discount_value,
+  pg.start_date,
+  pg.end_date,
+  pg.status as promotion_status
+FROM coupons c
+JOIN promotions p 
+  ON c.promotion_id = p.id
+JOIN promotion_groups pg 
+  ON p.promotion_group_id = pg.id
+WHERE c.code = $1
+LIMIT 1
   `,
 
   useCoupon: `
@@ -314,6 +601,9 @@ ORDER BY p.promotion_group_id, p.created_at DESC;
       'name', u.name,
       'gender', u.gender,
       'phone', u.phone,
+      'birth_date', u.birth_date,
+      'birth_time', u.birth_time,
+      'birth_place', u.birth_place,
       'status', u.status
     )
   ) FILTER (WHERE u.id IS NOT NULL) AS members
@@ -321,7 +611,14 @@ FROM restaurants r
 LEFT JOIN users u ON u.restaurant_id = r.id
 GROUP BY r.id, r.name
 ORDER BY r.id;
+  `,
 
+  adminUpdateUser: `
+  UPDATE users SET name = COALESCE($1, name), gender = COALESCE($2, gender), 
+  phone = COALESCE($3, phone), birth_date = COALESCE($4, birth_date),
+  birth_time = COALESCE($5, birth_time), birth_place = COALESCE($6, birth_place), 
+  updated_at = CURRENT_TIMESTAMP 
+  WHERE id = $7
   `
 }
 

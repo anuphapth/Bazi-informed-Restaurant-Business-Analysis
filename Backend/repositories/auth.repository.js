@@ -86,8 +86,9 @@ class AuthRepository {
   }
 
   async getMenuByUser(userId, limit, offset) {
-    return await executeQuery(constants.getMenuByUser, [userId, limit, offset])
+    return await executeQuery(constants.getMenuByUser, [userId, limit, offset]);
   }
+
 
   async getAllMenuRowsByUser(userId) {
     return await executeQuery(constants.getAllrowMenu, [userId])
@@ -101,42 +102,30 @@ class AuthRepository {
     return await executeQuery(constants.getAllrowMenuElementLike, [restaurantId, userId])
   }
 
-  async filterMenu(restaurantId, element, price, limit, offset) {
-    let elementCondition = ''
-    const params = [restaurantId]
+  async filterMenu(restaurantId, userId, element, price, limit, offset) {
 
-    let limitIndex = 2
-    let offsetIndex = 3
+    const order = price === 'desc' ? 'DESC' : 'ASC'
 
-    if (Array.isArray(element) && element.length > 0) {
-      elementCondition = `
-      AND m.element ?| $2
-    `
-      params.push(element)
-      limitIndex = 3
-      offsetIndex = 4
-    }
+    const sql = constants.filterMenu.replace('%%ORDER%%', order)
 
-    const order = price === 'DESC' ? 'DESC' : 'ASC'
+    const menu = await executeQuery(sql, [
+      restaurantId,
+      userId,
+      Array.isArray(element) && element.length ? element : null,
+      limit,
+      offset
+    ])
 
-    const menuSql = constants.filterMenu
-      .replace('/**element**/', elementCondition)
-      .replace('/**price**/', order)
-      .replace('$3', `$${limitIndex}`)
-      .replace('$4', `$${offsetIndex}`)
-
-    const menu = await executeQuery(menuSql, [...params, limit, offset])
-
-    const countSql = constants.filterMenuCount
-      .replace('/**element**/', elementCondition)
-
-    const rows = await executeQuery(countSql, params)
+    const rows = await executeQuery(constants.filterMenuCount, [
+      restaurantId,
+      Array.isArray(element) && element.length ? element : null
+    ])
 
     return { menu, rows }
   }
 
-  async checkPromotion(promotionId) {
-    return await executeQuery(constants.checkPromotion, [promotionId])
+  async checkUserCoupon(userId, promotionId) {
+    return await executeQuery(constants.checkUserCoupon, [userId, promotionId])
   }
 
   async addCoupon(data) {

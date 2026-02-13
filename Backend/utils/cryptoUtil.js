@@ -5,11 +5,13 @@ const BASE = 62n;
 const SECRET = 0x5f3759dfn;
 
 export const encodeShort = (id) => {
-    if (!Number.isInteger(id) || id < 0) {
+    const numericId = Number(id);
+
+    if (!Number.isInteger(numericId) || numericId < 0) {
         throw new Error("id must be a positive integer");
     }
 
-    let num = BigInt(id) ^ SECRET;
+    let num = BigInt(numericId) ^ SECRET;
 
     let result = "";
     do {

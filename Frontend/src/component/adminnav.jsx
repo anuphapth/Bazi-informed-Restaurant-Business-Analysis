@@ -1,55 +1,121 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Utensils, User, LogOut } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { User, LogOut, LayoutDashboard, Store, Users } from 'lucide-react';
 import useAdmin from '../store/useAdmin';
+import toast from "react-hot-toast";
+// นำเข้า Logo จาก assets
+import LogoImg from '../assets/logo.svg';
 
 const Adminnav = () => {
-  const actionLogout = useAdmin((state) => state.actionLogout)
-  const navigate = useNavigate()
+  const actionLogout = useAdmin((state) => state.actionLogout);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
-    actionLogout()
-    navigate('/admin')
-  }
+    actionLogout();
+    navigate('/admin');
+    toast.success("ออกจากระบบแอดมินแล้ว");
+  };
+
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <>
-      <header className='fixed top-0 left-0 w-full z-50 flex shadow-lg bg-background/55 backdrop-blur supports-[backdrop-filter]:bg-background/60' >
-        {/* header left */}
-        <div className='container mx-auto px-16 py-4 flex justify-start items-center'>
-          <div className='px-2'>
-            <Utensils />
+    <header className="fixed top-0 left-0 w-full z-50 shadow-sm border-b border-slate-100 bg-white/80 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 h-16 flex justify-between items-center">
+        
+        {/* LOGO SECTION */}
+        <Link to="/admin" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-xl group-hover:scale-105 transition-transform duration-300">
+            <img 
+              src={LogoImg} 
+              alt="Bazi Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
-          <div className='px-2'>
-            <h1>Bazi Resturant</h1>
+          <div className="flex flex-col">
+            <h1 className="font-black text-slate-800 text-base md:text-lg leading-none tracking-tight">
+              BAZI <span className="text-blue-600">ADMIN</span>
+            </h1>
+            <span className="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase hidden sm:block">
+              Central Management
+            </span>
           </div>
-        </div>
+        </Link>
 
-        {/* header right*/}
-        <div className='container mx-auto px-16 py-4 flex justify-end items-center'>
-          <Link to="/admin" className='px-2' >
-            แดชบอร์ด
-          </Link>
-          <Link to="/admin/allrestaurent" className='px-2' >
-            รายชื่อร้านทั้งหมด
-          </Link>
-          <Link to="/admin/alluser" className='px-2' >
-            รายชื่อผู้ใช้ทั้งหมด
+        {/* NAVIGATION & ACTIONS SECTION */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          
+          {/* Dashboard */}
+          <Link 
+            to="/admin"
+            className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
+              isActive('/admin') 
+              ? 'bg-blue-50 text-blue-600' 
+              : 'text-slate-500 hover:bg-slate-50'
+            }`}
+            title="แดชบอร์ด"
+          >
+            <LayoutDashboard size={22} />
+            <span className="hidden lg:block text-sm font-medium">แดชบอร์ด</span>
           </Link>
 
-          <Link to='/admin/profileadmin' className='px-2'>
-            <User />
+          {/* All Restaurants */}
+          <Link 
+            to="/admin/allrestaurent"
+            className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
+              isActive('/admin/allrestaurent') 
+              ? 'bg-blue-50 text-blue-600' 
+              : 'text-slate-500 hover:bg-slate-50'
+            }`}
+            title="ร้านอาหารทั้งหมด"
+          >
+            <Store size={22} />
+            <span className="hidden lg:block text-sm font-medium">ร้านอาหาร</span>
           </Link>
 
-          {/* ✅ logout */}
-          <button onClick={handleLogout}>
-            <LogOut className="cursor-pointer" />
+          {/* All Users */}
+          <Link 
+            to="/admin/alluser"
+            className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
+              isActive('/admin/alluser') 
+              ? 'bg-blue-50 text-blue-600' 
+              : 'text-slate-500 hover:bg-slate-50'
+            }`}
+            title="ผู้ใช้งานทั้งหมด"
+          >
+            <Users size={22} />
+            <span className="hidden lg:block text-sm font-medium">ผู้ใช้งาน</span>
+          </Link>
+
+          {/* Profile */}
+          <Link 
+            to="/admin/profileadmin"
+            className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
+              isActive('/admin/profileadmin') 
+              ? 'bg-blue-50 text-blue-600' 
+              : 'text-slate-500 hover:bg-slate-50'
+            }`}
+            title="โปรไฟล์แอดมิน"
+          >
+            <User size={22} />
+          </Link>
+
+          {/* Divider */}
+          <div className="w-[1px] h-5 bg-slate-200 mx-1"></div>
+
+          {/* Logout Button */}
+          <button 
+            onClick={handleLogout}
+            className="p-2.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all active:scale-90"
+            title="ออกจากระบบ"
+          >
+            <LogOut size={22} />
           </button>
         </div>
-      </header>
-    </>
+
+      </div>
+    </header>
   );
 };
 
 export default Adminnav;
-

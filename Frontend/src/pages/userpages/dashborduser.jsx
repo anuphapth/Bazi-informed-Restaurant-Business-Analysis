@@ -7,7 +7,7 @@ import api from "../../utils/api"
 
 
 const API_URL = import.meta.env.VITE_API_URL;
-const FALLBACK_IMAGE = "https://t4.ftcdn.net/jpg/05/72/86/19/360_F_572861950_RfPLbfdWyCYB9B9vCGWuak9UFA0pN5Qo.jpg";
+const FALLBACK_IMAGE = "https://res.cloudinary.com/dqqkzucir/image/upload/v1770964754/depositphotos_289179526-stock-photo-white-torn-rolled-paper-light_drbebs.webp";
 
 const elementInfo = {
   wood: { nameTh: "ไม้", color: "from-emerald-600 to-teal-800", bg: "bg-emerald-50", text: "text-emerald-700" },

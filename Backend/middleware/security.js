@@ -52,7 +52,7 @@ export const sanitizeInput = (req, res, next) => {
   if (req.body) {
     Object.keys(req.body).forEach((key) => {
       if (typeof req.body[key] === "string") {
-        req.body[key] = req.body[key].trim()
+        req.body[key] = req.body[key].trim().replace(/[<>]/g, "")
       }
     })
   }
@@ -61,12 +61,39 @@ export const sanitizeInput = (req, res, next) => {
   if (req.query) {
     Object.keys(req.query).forEach((key) => {
       if (typeof req.query[key] === "string") {
-        req.query[key] = req.query[key].trim()
+        req.query[key] = req.query[key].trim().replace(/[<>]/g, "")
       }
     })
   }
 
   next()
+}
+
+// CSRF protection middleware
+export const csrfProtection = (req, res, next) => {
+  // Skip CSRF for API endpoints that use tokens
+  if (req.path.startsWith('/api/')) {
+    return next()
+  }
+  
+  // For web forms, check CSRF token
+  const token = req.body._csrf || req.headers['x-csrf-token']
+  if (!token) {
+    return res.status(403).json({ 
+      message: 'CSRF token missing',
+      code: 'CSRF_TOKEN_MISSING'
+    })
+  }
+  
+  next()
+}
+
+// CORS configuration
+export const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 }
 
 // Request logging for security audit

@@ -21,7 +21,7 @@ export const login = async (req, res) => {
         name: result.restaurant.name,
         email: result.restaurant.email,
       },
-      tokens: { accessToken: result.tokens.accessToken },
+      tokens: {accessToken:result.tokens.accessToken},
     })
   } catch (error) {
     console.error('[Restaurant Login Error]', error)

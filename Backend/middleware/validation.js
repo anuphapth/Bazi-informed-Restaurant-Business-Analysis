@@ -218,6 +218,35 @@ export const adminValidation = {
     body("email").trim().isEmail().normalizeEmail().withMessage("Valid email is required"),
     body("password").notEmpty().isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
     validate,
-  ]
+  ],
+  editUser: [
+    body("name").optional().trim().isString().isLength({ min: 2, max: 100 }),
+    body("gender").optional().isIn(["male", "female", "other"]),
+    body("phone")
+      .optional()
+      .trim()
+      .matches(/^[0-9]{9,15}$/),
+    body("birth_date").optional().isDate({ format: "YYYY-MM-DD" }),
+    body("birth_time")
+      .optional()
+      .customSanitizer((value) => {
+        if (!value) return value
+        return value.split(":").slice(0, 2).join(":")
+      })
+      .matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/)
+      .withMessage("birth_time must be HH:mm"),
+    body("birth_place").optional().trim().isString().isLength({ max: 200 }),
+    validate,
+  ],
+  deleteUser: [
+    body("userId")
+      .isInt({ min: 1 })
+      .withMessage("Valid UserId is required")
+      .notEmpty()
+      .withMessage("UserId cannot be empty"),
+  ],
+  deleteRestaurant: [
+    body("restaurantId").isInt({ min: 1 }).notEmpty().withMessage("Valid RestaurantId is required"),
+  ],
 
 }

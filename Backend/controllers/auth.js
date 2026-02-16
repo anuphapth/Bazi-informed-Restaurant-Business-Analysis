@@ -23,7 +23,9 @@ export const lineUIDCheck = async (req, res) => {
       action: 'LOGIN',
       user: result.user,
       bazi: result.bazi,
-      tokens: { accessToken: result.tokens.accessToken },
+      tokens: {
+        accessToken: result.tokens.accessToken,
+      },
     })
 
   } catch (error) {

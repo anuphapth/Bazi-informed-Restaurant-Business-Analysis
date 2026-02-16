@@ -7,12 +7,15 @@ const { Pool } = pkg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-// ✅ Test connection
+
 (async () => {
   try {
     const client = await pool.connect();
@@ -30,14 +33,11 @@ pool.on("error", (err) => {
 });
 
 
-// ✅ Normal query helper
 export const executeQuery = async (query, params = []) => {
   const { rows } = await pool.query(query, params);
   return rows;
 };
 
-
-// ✅ Transaction helper (Callback Mode)
 export const executeQueryWithTransaction = async (callback) => {
   const client = await pool.connect();
 

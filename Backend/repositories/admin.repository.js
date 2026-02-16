@@ -36,6 +36,17 @@ class AdminRepository {
     ])
   }
 
+  async deleteUserByAdmin(data){
+    return await executeQuery(constants.adminDeleteUser,[data.userId])
+  }
+
+  async checkRestaurant(data){
+    return await executeQuery(constants.checkRestaurant,[data.restaurantId])
+  }
+
+  async deleteRestaurant(data) {
+    return await executeQuery(constants.deleteRestaurantByAdmin,[data.restaurantId])
+  }
 }
 
 export default AdminRepository

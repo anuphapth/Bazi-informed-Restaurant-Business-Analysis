@@ -597,7 +597,7 @@ LIMIT 1
   r.name AS restaurant_name,
   json_agg(
     json_build_object(
-      'id', u.id,
+      'userId', u.id,
       'name', u.name,
       'gender', u.gender,
       'phone', u.phone,
@@ -619,7 +619,19 @@ ORDER BY r.id;
   birth_time = COALESCE($5, birth_time), birth_place = COALESCE($6, birth_place), 
   updated_at = CURRENT_TIMESTAMP 
   WHERE id = $7
-  `
+  `,
+
+  adminDeleteUser:`
+  DELETE FROM users WHERE id = $1
+  `,
+
+  checkRestaurant:`
+  SELECT * FROM restaurants WHERE id = $1
+  `,
+
+  deleteRestaurantByAdmin:`
+  DELETE FROM restaurants WHERE id = $1
+  `,
 }
 
 export default constants

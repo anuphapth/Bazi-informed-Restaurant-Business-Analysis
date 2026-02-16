@@ -14,19 +14,17 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const allowedOrigins = process.env.ALLOW_URL
-  ? process.env.ALLOW_URL.split(",")
-  : [];
-
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: [
+    "https://meningococcic-geratologic-harriett.ngrok-free.dev",
+    "https://noncognizant-toshia-unslyly.ngrok-free.dev"
+  ],
+  method: ["GET","POST","PUT","DELETE","PATCH"],
+  credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
-app.use(morgan("combined"));
+app.use(morgan("dev"));
 
 // API routes
 const routeFiles = readdirSync("./routes");

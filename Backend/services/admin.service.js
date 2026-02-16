@@ -13,29 +13,29 @@ class AdminService {
   }
 
   async login(email, password) {
-    const restaurant = await this.adminRepo.getAdminByEmail(email)
-    if (!restaurant.length) {
+    const admin = await this.adminRepo.getAdminByEmail(email)
+    if (!admin.length) {
       throw new Error('Invalid email or password')
     }
 
-    const isMatch = await bcrypt.compare(String(password), String(restaurant[0].password))
+    const isMatch = await bcrypt.compare(String(password), String(admin[0].password))
     if (!isMatch) {
       throw new Error('Invalid email or password')
     }
 
     const accessToken = generateAccessToken({
-      userId: restaurant[0].id,
+      userId: admin[0].id,
       userType: 'ADMIN',
     })
 
-    const refreshToken = await generateRefreshToken(restaurant[0].id, 'ADMIN', {
+    const refreshToken = await generateRefreshToken(admin[0].id, 'ADMIN', {
       deviceInfo: 'web',
       ipAddress: '127.0.0.1',
     })
 
     return {
-      restaurant: restaurant[0],
-      tokens: { accessToken,refreshToken }
+      admin: admin[0],
+      tokens: { accessToken, refreshToken }
     }
   }
 
@@ -56,11 +56,10 @@ class AdminService {
   }
 
   async checkUserExiting(data) {
-    if (!data || !data.id) {
-      throw new Error('User id is required')
+    if (!data || (!data.id && !data.userId)) {
+      throw new Error('userId is required');
     }
-
-    const checkUser = await this.adminRepo.getUserById(data.id)
+    const checkUser = await this.adminRepo.getUserById(data.userId)
 
     if (checkUser.length === 0) {
       throw new Error('User not found')
@@ -72,6 +71,20 @@ class AdminService {
   async updateUserByAdmin(data) {
     await this.checkUserExiting(data)
     return await this.adminRepo.updateUserByAdmin(data)
+  }
+
+  async deleteUserByAdmin(data) {
+    await this.checkUserExiting(data)
+    return await this.adminRepo.deleteUserByAdmin(data)
+  }
+
+  async deleteRestaurantByAdmin(data) {
+    const checkRestaurant = await this.adminRepo.checkRestaurant(data)
+    if (checkRestaurant.length <= 0) {
+      throw new Error('Restaurant not found')
+    } else {
+      return await this.adminRepo.deleteRestaurant(data)
+    }
   }
 
   async logout(accessToken, refreshToken) {

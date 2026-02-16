@@ -1,6 +1,6 @@
 import express from "express"
-import { authenticateToken,requireRole } from "../middleware/auth.js"
-import { login, refreshAccessToken, logout, createRestaurant,getAllRestaurant, updateUserByAdmin } from '../controllers/admin.js'
+import { authenticateToken, requireRole } from "../middleware/auth.js"
+import { login, refreshAccessToken, logout, createRestaurant, getAllRestaurant, updateUserByAdmin, deleteUserByAdmin, deleteRestaurantByAdmin } from '../controllers/admin.js'
 import { adminValidation, authValidation } from "../middleware/validation.js"
 import { asyncHandler } from "../middleware/errorHandler.js"
 const routes = express.Router()
@@ -26,11 +26,28 @@ routes.get(
   asyncHandler(getAllRestaurant)
 )
 
-routes.post(
+routes.put(
   "/admin/restaurant/edit/user",
   authenticateToken,
   requireRole("ADMIN"),
+  adminValidation.editUser,
   asyncHandler(updateUserByAdmin)
+)
+
+routes.delete(
+  "/admin/restaurant/delete/user",
+  authenticateToken,
+  requireRole("ADMIN"),
+  adminValidation.deleteUser,
+  asyncHandler(deleteUserByAdmin)
+)
+
+routes.delete(
+  "/admin/restaurant/delete",
+  authenticateToken,
+  requireRole("ADMIN"),
+  adminValidation.deleteRestaurant,
+  asyncHandler(deleteRestaurantByAdmin)
 )
 
 routes.post(

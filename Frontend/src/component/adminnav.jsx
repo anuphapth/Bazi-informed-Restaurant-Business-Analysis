@@ -45,63 +45,7 @@ const Adminnav = () => {
         {/* NAVIGATION & ACTIONS SECTION */}
         <div className="flex items-center gap-1 sm:gap-2">
           
-          {/* Dashboard */}
-          <Link 
-            to="/admin"
-            className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              isActive('/admin') 
-              ? 'bg-blue-50 text-blue-600' 
-              : 'text-slate-500 hover:bg-slate-50'
-            }`}
-            title="แดชบอร์ด"
-          >
-            <LayoutDashboard size={22} />
-            <span className="hidden lg:block text-sm font-medium">แดชบอร์ด</span>
-          </Link>
-
-          {/* All Restaurants */}
-          <Link 
-            to="/admin/allrestaurent"
-            className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              isActive('/admin/allrestaurent') 
-              ? 'bg-blue-50 text-blue-600' 
-              : 'text-slate-500 hover:bg-slate-50'
-            }`}
-            title="ร้านอาหารทั้งหมด"
-          >
-            <Store size={22} />
-            <span className="hidden lg:block text-sm font-medium">ร้านอาหาร</span>
-          </Link>
-
-          {/* All Users */}
-          <Link 
-            to="/admin/alluser"
-            className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              isActive('/admin/alluser') 
-              ? 'bg-blue-50 text-blue-600' 
-              : 'text-slate-500 hover:bg-slate-50'
-            }`}
-            title="ผู้ใช้งานทั้งหมด"
-          >
-            <Users size={22} />
-            <span className="hidden lg:block text-sm font-medium">ผู้ใช้งาน</span>
-          </Link>
-
-          {/* Profile */}
-          <Link 
-            to="/admin/profileadmin"
-            className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              isActive('/admin/profileadmin') 
-              ? 'bg-blue-50 text-blue-600' 
-              : 'text-slate-500 hover:bg-slate-50'
-            }`}
-            title="โปรไฟล์แอดมิน"
-          >
-            <User size={22} />
-          </Link>
-
-          {/* Divider */}
-          <div className="w-[1px] h-5 bg-slate-200 mx-1"></div>
+          
 
           {/* Logout Button */}
           <button 

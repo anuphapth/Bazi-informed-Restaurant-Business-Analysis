@@ -14,6 +14,7 @@ import {
   encodeShort,
   decodeShort,
 } from '../utils/cryptoUtil.js'
+import { decode } from 'punycode'
 
 dotenv.config()
 
@@ -43,7 +44,7 @@ class AuthService {
     const user = checkUser[0]
     const accessToken = generateAccessToken({
       userId: user.id,
-      userType: 'user',
+      userType: 'USER',
       restaurantId: user.restaurant_id,
     })
 
@@ -132,7 +133,6 @@ class AuthService {
     const favorable_elements = summary.favorableElements
     const unfavorable_elements = summary.unfavorableElements
 
-    console.log(favorable_elements)
     if (!main_element || !VALID_ELEMENTS.includes(main_element)) {
       throw new Error('Invalid element data')
     }
@@ -234,6 +234,7 @@ class AuthService {
   }
 
   async prediction(userId) {
+    
     const checkUser = await this.authRepo.checkUserExists(userId)
     if (checkUser.length === 0) {
       throw new Error('User not found')
@@ -487,13 +488,12 @@ class AuthService {
     }
 
     const decoded = await verifyRefreshToken(refreshToken)
-
     const newAccessToken = generateAccessToken({
       userId: decoded.userId,
       userType: decoded.userType,
       restaurantId: decoded.restaurantId,
     })
-
+    
     return { accessToken: newAccessToken }
   }
 

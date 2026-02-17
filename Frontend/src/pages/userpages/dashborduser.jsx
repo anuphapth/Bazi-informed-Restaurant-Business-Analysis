@@ -310,9 +310,17 @@ function MenuModal({ menu: initialMenu, onClose, fetchLikedMenus, page, setSelec
   useEffect(() => {
     const socket = io(import.meta.env.VITE_API_URL);
 
+    // ✅ 1. บอก Server ว่าเราขอเข้าห้องของร้านนี้ (restaurant_id)
+    // สมมติว่าใน menuData มีข้อมูล restaurant_id หรือคุณได้จาก user profile
+    if (menuData.restaurant_id) {
+      socket.emit("joinRestaurant", String(menuData.restaurant_id));
+    }
+
+    // ✅ 2. รอฟังการอัปเดต
     socket.on("couponUpdated", async (data) => {
       console.log("Real-time update received:", data);
 
+      // เช็ค ID คูปองให้ตรงกัน
       const isThisCouponUsed = menuData.promotions?.some(
         (p) => String(p.promotion_id) === String(data.coupon_id)
       );
@@ -331,7 +339,7 @@ function MenuModal({ menu: initialMenu, onClose, fetchLikedMenus, page, setSelec
     return () => {
       socket.disconnect();
     };
-  }, [menuData, page, fetchLikedMenus, setSelectedMenu]);
+  }, [menuData.id, menuData.restaurant_id]);
 
   const hasPromo = (menuData.canUsePromotion === true || menuData.canUsePromotion === 1) &&
     Array.isArray(menuData.promotions) && menuData.promotions.length > 0;

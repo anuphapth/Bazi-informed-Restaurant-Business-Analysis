@@ -17,11 +17,10 @@ const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days in millisecond
  */
 export const generateAccessToken = (payload) => {
   const jti = crypto.randomBytes(16).toString("hex")
-
   return jwt.sign(
     {
       ...payload,
-      jti, // JWT ID for blacklisting
+      jti,
       type: "access",
     },
     JWT_SECRET,

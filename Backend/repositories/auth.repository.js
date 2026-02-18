@@ -11,7 +11,11 @@ class AuthRepository {
   }
 
   async checkUserExists(userId) {
-    return await executeQuery(constants.checkUserAlready, [userId])
+    const result = await executeQuery(constants.checkUserAlready, [userId])
+    if (result.length === 0) {
+      throw new Error('User not found')
+    }
+    return result
   }
 
   async checkRestaurant(restaurantId) {

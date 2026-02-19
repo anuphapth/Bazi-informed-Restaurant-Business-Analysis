@@ -183,7 +183,7 @@ export const useCoupon = async (req, res) => {
     io.to(code).emit("couponUpdated", {
       code,
       status: "USED"
-    });
+    })
 
 
     return res.status(200).json(result)

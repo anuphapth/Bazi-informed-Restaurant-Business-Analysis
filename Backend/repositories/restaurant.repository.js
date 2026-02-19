@@ -61,7 +61,8 @@ class RestaurantRepository {
   }
 
   async findMenuByElement(client, element, restaurantId) {
-    const { rows } = await client.query(constants.findMenuelelemet, [JSON.stringify(element),restaurantId]);
+    const elementJsonb = JSON.stringify(element);
+    const { rows } = await client.query(constants.findMenuelelemet, [restaurantId, elementJsonb]);
     return rows;
   }
 
@@ -85,6 +86,12 @@ class RestaurantRepository {
       [groupId, menuId]
     );
   }
+
+  async findUsersByElements(restaurantId, targetElements) {
+    const targetJsonbArray = targetElements.map(element => `"${element}"`);
+    return await executeQuery(constants.findUserByElemets, [restaurantId, targetJsonbArray]);
+  }
+
 
   async getAllPromotionByRestaurant(restaurantId) {
     return await executeQuery(constants.getAllPromotionByRestaurant, [restaurantId])
@@ -113,18 +120,19 @@ class RestaurantRepository {
 
 
   async deletePromotionGroup(groupId) {
-  const result = await executeQuery(
-    constants.deletePromotionGroup,
-    [groupId]
-  );
+    const result = await executeQuery(
+      constants.deletePromotionGroup,
+      [groupId]
+    );
 
-  return result;
-}
-
-
-  async findUser(restaurantId, limit, offset) {
-    return await executeQuery(constants.findUser, [restaurantId, limit, offset])
+    return result;
   }
+
+
+  async findUser(restaurantId) {
+    return await executeQuery(constants.findUser, [restaurantId])
+  }
+
 
   async getAllUserRows(restaurantId) {
     return await executeQuery(constants.getAllrowUserByRestaurant, [restaurantId])

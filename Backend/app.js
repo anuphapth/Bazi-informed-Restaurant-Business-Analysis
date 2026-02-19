@@ -11,8 +11,8 @@ import cors from "cors";
 
 const app = express();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 app.use(cors({
   origin: [
@@ -21,28 +21,28 @@ app.use(cors({
   ],
   methods: ["GET","POST","PUT","DELETE","PATCH"],
   credentials: true
-}));
+}))
 
-app.use(express.json());
-app.use(cookieParser());
-app.use(morgan("dev"));
+app.use(express.json())
+app.use(cookieParser())
+app.use(morgan("dev"))
 
 // โหลด routes แบบ async
 const loadRoutes = async () => {
-  const routeFiles = readdirSync("./routes");
+  const routeFiles = readdirSync("./routes")
   for (const r of routeFiles) {
-    const router = await import(`./routes/${r}`);
-    app.use("/api", router.default);
+    const router = await import(`./routes/${r}`)
+    app.use("/api", router.default)
   }
-};
+}
 
-await loadRoutes();
+await loadRoutes()
 
 // serve React
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public")))
 
 app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+  res.sendFile(path.join(__dirname, "public", "index.html"))
+})
 
 export default app;

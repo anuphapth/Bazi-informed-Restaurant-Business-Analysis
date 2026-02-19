@@ -24,14 +24,14 @@ io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id)
 
   socket.on("joinCoupon", (code) => {
-    socket.join(code);
-    console.log(`Socket ${socket.id} joined coupon room ${code}`);
-  });
+    socket.join(code)
+    console.log(`Socket ${socket.id} joined coupon room ${code}`)
+  })
 
   socket.on("leaveCoupon", (code) => {
-    socket.leave(code);
-    console.log(`Socket ${socket.id} left coupon room ${code}`);
-  });
+    socket.leave(code)
+    console.log(`Socket ${socket.id} left coupon room ${code}`)
+  })
 
   socket.on("disconnect", () => {
     console.log("Socket disconnected:", socket.id)

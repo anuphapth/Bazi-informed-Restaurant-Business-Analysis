@@ -80,10 +80,12 @@ const constants = {
   `,
 
   coolactElement: `
-    SELECT main_element, COUNT(*) as count
-    FROM user_elements
-    GROUP BY main_element
-    ORDER BY count DESC
+SELECT 
+  split_part(main_element, ' ', 1) AS main_element,
+  COUNT(*) as count
+FROM user_elements
+GROUP BY split_part(main_element, ' ', 1)
+ORDER BY count DESC
   `,
 
   // Prediction queries

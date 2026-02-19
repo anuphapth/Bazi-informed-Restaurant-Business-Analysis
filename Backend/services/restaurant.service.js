@@ -174,7 +174,7 @@ class RestaurantService {
       if (data.discount_value <= 0 || data.discount_value > 100) {
         throw new Error('Discount Error')
       }
-      const menus = await this.restaurantRepo.findMenuByElement(client, data.element,restaurantId);
+      const menus = await this.restaurantRepo.findMenuByElement(client, data.element, restaurantId);
 
       if (!menus || menus.length === 0) {
         throw new Error('No menus match the specified elements');
@@ -325,10 +325,15 @@ class RestaurantService {
     const rows = await this.restaurantRepo.getAllUserRows(restaurantId)
     const lastPage = Math.ceil(rows[0].total / limit)
 
+    const formattedUser = user.map(u => ({
+      ...u,
+      main_element: u.main_element?.split(' ')[0] || null
+    }))
+
     return {
       lastPage,
       element: element || [],
-      user: user || [],
+      user: formattedUser || [],
     }
   }
 

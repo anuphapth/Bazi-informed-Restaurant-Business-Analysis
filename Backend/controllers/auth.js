@@ -173,6 +173,7 @@ export const createCoupon = async (req, res) => {
 
 export const useCoupon = async (req, res) => {
   try {
+
     const { code } = req.body
 
     const result = await authService.useCoupon(code)

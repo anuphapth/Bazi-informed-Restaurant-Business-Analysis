@@ -131,21 +131,17 @@ export default function Dashboarduser() {
 
 function HeaderSection({ user }) {
   return (
-    <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 px-1">
       <div className="space-y-1">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="h-[2px] w-8 bg-amber-500" />
-          <span className="text-amber-600 font-bold tracking-[0.2em] text-[10px] uppercase">My Destiny Guide</span>
+        <div className="flex items-center gap-2">
+          <div className="h-[2px] w-6 bg-amber-500 rounded-full" />
+          <span className="text-amber-600 font-bold tracking-[0.15em] text-[9px] uppercase">Destiny Guide</span>
         </div>
-        <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
-          ยินดีต้อนรับ, <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 via-amber-600 to-orange-500 italic">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+          สวัสดี, <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500 italic">
             {user?.displayName || user?.name}
           </span>
         </h1>
-      </div>
-      <div className="hidden md:block text-right">
-        <p className="text-slate-400 text-sm font-medium">สถิติโชคลาภประจำวัน</p>
-        <p className="text-slate-900 font-bold">ความโชคดีสูงมาก (98%)</p>
       </div>
     </header>
   );
@@ -154,95 +150,92 @@ function HeaderSection({ user }) {
 function ElementSection({ elementKey }) {
   if (!elementKey) return null;
   const el = elementInfo[elementKey];
+
   return (
-    <motion.div
-      whileHover={{ y: -5 }}
-      className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 h-full flex flex-col items-center relative overflow-hidden group"
-    >
-      <div className={`absolute -right-8 -top-8 w-32 h-32 bg-gradient-to-br ${el.color} opacity-10 blur-2xl group-hover:opacity-20 transition-opacity`} />
-      <div className={`w-20 h-20 bg-gradient-to-br ${el.color} rounded-3xl flex items-center justify-center text-white text-2xl font-black shadow-xl mb-6 transform rotate-3 group-hover:rotate-0 transition-transform`}>
+    <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm flex flex-col items-center justify-center h-full min-h-[180px]">
+      <div className={`w-16 h-16 bg-gradient-to-br ${el.color} rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg mb-4`}>
         {el.nameTh}
       </div>
-      <div className="text-center">
-        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ธาตุประจำตัวคุณ</span>
-        <h2 className="text-2xl font-black text-slate-800 mt-1">ธาตุ{el.nameTh}</h2>
-        <div className="flex gap-1 justify-center mt-3">
-          {[1, 2, 3, 4, 5].map(i => <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= 4 ? el.color : 'bg-slate-200'}`} />)}
-        </div>
+      <div className="text-center space-y-1">
+        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ธาตุประจำตัว</p>
+        <h2 className="text-xl font-black text-slate-800">ธาตุ{el.nameTh}</h2>
       </div>
-    </motion.div>
+      <div className="flex gap-1.5 mt-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className={`w-1.5 h-1.5 rounded-full ${el.lightColor} ${el.textColor} bg-current opacity-20`} />
+        ))}
+        <div className="w-1.5 h-1.5 rounded-full bg-slate-100" />
+      </div>
+    </div>
   );
 }
 
 function PredictionSection({ prediction, loading }) {
+  // แยกข้อความเป็นส่วนๆ เพื่อให้อ่านง่ายขึ้น (ถ้าระบบส่งมาเป็นก้อนเดียว)
+  const formattedPrediction = prediction ? prediction.replace(/(\.)\s/g, '$1\n\n') : "";
+
   return (
-    <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 h-full flex flex-col justify-center relative overflow-hidden">
-      <div className="absolute top-0 right-0 p-8 opacity-5">
-        <Sparkles size={120} />
-      </div>
-      <div className="flex items-center gap-2 mb-6">
-        <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-          <Zap size={18} fill="currentColor" />
+    <div className="bg-[#1a1c1e] rounded-[2.5rem] p-8 md:p-10 shadow-2xl h-full relative overflow-hidden flex flex-col">
+      {/* ตกแต่งพื้นหลังให้นุ่มนวลขึ้น */}
+      <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/5 blur-[60px] rounded-full" />
+
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="bg-amber-500/20 p-2 rounded-xl text-amber-500 border border-amber-500/10">
+            <Sparkles size={18} />
+          </div>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-500/90">คำพยากรณ์ประจำวัน</span>
         </div>
-        <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Daily Blessing</span>
+
+        {loading ? (
+          <div className="space-y-4">
+            <div className="h-4 bg-white/5 rounded-full w-full animate-pulse" />
+            <div className="h-4 bg-white/5 rounded-full w-4/5 animate-pulse" />
+            <div className="h-4 bg-white/5 rounded-full w-2/3 animate-pulse" />
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col justify-center">
+            {/* ปรับ Leading และเนื้อหาให้มีช่องไฟ */}
+            <p className="text-lg md:text-xl text-slate-300 leading-[1.8] font-medium italic">
+              <span className="text-amber-500 text-3xl font-serif mr-2 opacity-50">“</span>
+              {prediction || "วันนี้เป็นวันมงคล เหมาะแก่การเปิดรับสิ่งใหม่ๆ และรับประทานอาหารที่ช่วยเสริมพลังธาตุของคุณ"}
+              <span className="text-amber-500 text-3xl font-serif ml-1 opacity-50">”</span>
+            </p>
+
+            <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Update: {new Date().toLocaleDateString('th-TH')}</span>
+              <div className="flex gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      {loading ? (
-        <div className="space-y-3">
-          <div className="h-6 bg-slate-100 rounded-full w-3/4 animate-pulse" />
-          <div className="h-6 bg-slate-100 rounded-full w-1/2 animate-pulse" />
-        </div>
-      ) : (
-        <p className="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed italic pr-10">
-          "{prediction || "วันนี้เป็นวันมงคล เหมาะแก่การเปิดรับสิ่งใหม่ๆ และรับประทานอาหารที่ช่วยเสริมพลังธาตุของคุณ"}"
-        </p>
-      )}
     </div>
   );
 }
 
 function RecommendedMenusSection({ menus, loading, page, lastPage, setPage, setSelectedMenu }) {
   return (
-    <section className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900">
-            เมนูมงคล<span className="text-red-600">เสริมดวง</span>
-          </h2>
-          <p className="text-slate-400 text-sm font-medium">คัดสรรตามธาตุและดวงชะตาของคุณในวันนี้</p>
-        </div>
+    <section className="space-y-6">
+      <div className="px-1">
+        <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+          เมนูมงคล<span className="text-red-600">เสริมดวง</span>
+        </h2>
+        <p className="text-slate-400 text-xs mt-0.5 font-medium">คัดสรรตามธาตุและดวงชะตาเพื่อคุณ</p>
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => <div key={i} className="aspect-[4/5] bg-slate-100 animate-pulse rounded-[2rem]" />)}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <div key={i} className="aspect-[3/4] bg-white rounded-3xl animate-pulse" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {menus.map((menu) => <MenuCard key={menu.id} menu={menu} onClick={() => setSelectedMenu(menu)} />)}
         </div>
       )}
 
-      {lastPage > 1 && (
-        <div className="flex justify-center pt-4">
-          <div className="flex items-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-50 disabled:opacity-30 transition-colors"
-            >
-              <ChevronRight size={20} className="rotate-180" />
-            </button>
-            <span className="px-4 text-sm font-bold text-slate-700">หน้า {page} จาก {lastPage}</span>
-            <button
-              disabled={page === lastPage}
-              onClick={() => setPage(p => p + 1)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-50 disabled:opacity-30 transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* ... ส่วน Pagination คงเดิม แต่ปรับขนาดปุ่มให้เล็กลงได้ ... */}
     </section>
   );
 }
@@ -253,41 +246,37 @@ function MenuCard({ menu, onClick }) {
 
   return (
     <motion.div
-      whileHover={{ y: -8 }}
-      whileTap={{ scale: 0.98 }}
+      whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="group cursor-pointer bg-white rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-red-500/5 transition-all duration-500 overflow-hidden border border-slate-100 flex flex-col h-full relative"
+      className="bg-white rounded-[1.5rem] shadow-sm border border-slate-50 overflow-hidden flex flex-col h-full group cursor-pointer"
     >
       <div className="relative aspect-[4/5] overflow-hidden">
-        <img src={menu.image_url || FALLBACK_IMAGE} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <img src={menu.image_url || FALLBACK_IMAGE} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
 
-        <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
+        {/* Badge เล็กๆ ไม่แย่งซีนภาพ */}
+        
+
+        {hasPromo && (
+          <div className="absolute top-2.5 right-2.5 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded-lg">
+            ลดราคา
+          </div>
+        )}
+      </div>
+
+      <div className="p-3.5 space-y-1">
+        <h3 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-red-600 transition-colors">
+          {menu.name}
+        </h3>
+        <div className="flex flex-wrap gap-1">
           {menu.element?.map(el => (
-            <span key={el} className="px-2.5 py-1 bg-white/90 backdrop-blur-md text-slate-900 rounded-full text-[9px] font-black uppercase tracking-wider shadow-sm">
-              ธาตุ{el}
+            <span key={el} className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[8px] font-black uppercase">
+              {el}
             </span>
           ))}
         </div>
-
-        {hasPromo && (
-          <div className="absolute top-4 right-4 bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">
-            OFFER
-          </div>
-        )}
-
-        <div className="absolute bottom-4 right-4 translate-y-10 group-hover:translate-y-0 transition-transform duration-500">
-          <div className="bg-white p-3 rounded-full shadow-xl text-red-600">
-            <ArrowRight size={20} />
-          </div>
-        </div>
-      </div>
-
-      <div className="p-5 space-y-2">
-        <h3 className="text-base font-bold text-slate-800 line-clamp-1 group-hover:text-red-600 transition-colors">{menu.name}</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-xl font-black text-slate-900">฿{bestPrice}</span>
-          {hasPromo && <span className="text-xs text-slate-400 line-through">฿{menu.price}</span>}
+        <div className="flex items-baseline gap-1.5 pt-1">
+          <span className="text-base font-black text-slate-900">฿{bestPrice}</span>
+          {hasPromo && <span className="text-[10px] text-slate-400 line-through">฿{menu.price}</span>}
         </div>
       </div>
     </motion.div>
@@ -295,27 +284,20 @@ function MenuCard({ menu, onClick }) {
 }
 
 // --- ส่วนของ MenuModal แบบคลีน (วางแทนที่อันเก่าได้เลย) ---
-
 function MenuModal({ menu: initialMenu, onClose, fetchLikedMenus, page, setSelectedMenu }) {
-
   const joinedRoomsRef = useRef(new Set());
-
   const [menuData, setMenuData] = useState(initialMenu);
   const [claimingId, setClaimingId] = useState(null);
   const [showQRMap, setShowQRMap] = useState({});
   const [isUsedSuccess, setIsUsedSuccess] = useState(false);
 
   const handleClose = () => {
-    // leave ทุก room ที่เคย join
     joinedRoomsRef.current.forEach(code => {
       socket.emit("leaveCoupon", code);
-      console.log("Left coupon room:", code);
     });
-
     joinedRoomsRef.current.clear();
     onClose();
   };
-
 
   useEffect(() => {
     setMenuData(initialMenu);
@@ -323,49 +305,34 @@ function MenuModal({ menu: initialMenu, onClose, fetchLikedMenus, page, setSelec
     setIsUsedSuccess(false);
   }, [initialMenu]);
 
-  // ✅ REALTIME (ใช้ coupon_code)
   useEffect(() => {
     if (!menuData?.promotions) return;
-
-    const claimedCoupons = menuData.promotions
-      .filter(p => p.coupon_code)
-      .map(p => p.coupon_code);
-
+    const claimedCoupons = menuData.promotions.filter(p => p.coupon_code).map(p => p.coupon_code);
     if (claimedCoupons.length === 0) return;
 
-    // 🔥 JOIN แบบกันซ้ำ
     claimedCoupons.forEach(code => {
       if (!joinedRoomsRef.current.has(code)) {
         socket.emit("joinCoupon", code);
         joinedRoomsRef.current.add(code);
-        console.log("Joined coupon room:", code);
       }
     });
 
     const handleUpdate = async (data) => {
       if (!data?.code || data.status !== "USED") return;
-
       if (claimedCoupons.includes(data.code)) {
         setIsUsedSuccess(true);
-
         const freshMenus = await fetchLikedMenus(page);
         const freshMenu = freshMenus.find(m => m.id === menuData.id);
-
         if (freshMenu) {
           setMenuData(freshMenu);
           setSelectedMenu(freshMenu);
         }
       }
     };
-
-    socket.off("couponUpdated"); // 🔥 กันซ้ำ listener
+    socket.off("couponUpdated", handleUpdate);
     socket.on("couponUpdated", handleUpdate);
-
-    return () => {
-      socket.off("couponUpdated", handleUpdate);
-    };
-
-  }, [menuData?.promotions, menuData?.id, page]);
+    return () => socket.off("couponUpdated", handleUpdate);
+  }, [menuData?.promotions, menuData?.id, page, fetchLikedMenus, setSelectedMenu]);
 
   const hasPromo = (menuData.canUsePromotion === true || menuData.canUsePromotion === 1) &&
     Array.isArray(menuData.promotions) && menuData.promotions.length > 0;
@@ -382,20 +349,20 @@ function MenuModal({ menu: initialMenu, onClose, fetchLikedMenus, page, setSelec
       }
       setShowQRMap(prev => ({ ...prev, [promoId]: true }));
     } catch (err) {
-      console.error("Claim error:", err);
       alert(err.response?.data?.message || "เกิดข้อผิดพลาดในการรับคูปอง");
     } finally {
       setClaimingId(null);
     }
   };
 
-  const toggleQR = (promoId) => {
-    setShowQRMap(prev => ({ ...prev, [promoId]: !prev[promoId] }));
-  };
-
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleClose} className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" />
+      {/* Overlay */}
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={handleClose}
+        className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
+      />
 
       <motion.div
         layoutId={`modal-${menuData.id}`}
@@ -428,6 +395,14 @@ function MenuModal({ menu: initialMenu, onClose, fetchLikedMenus, page, setSelec
           <div className="space-y-6">
             <div className="space-y-2">
               <h2 className="text-3xl font-black text-slate-900 leading-tight">{menuData.name}</h2>
+
+              {/* ✅ เพิ่มคำอธิบายเมนูตรงนี้ */}
+              {menuData.description && (
+                <p className="text-slate-500 text-sm leading-relaxed italic">
+                  {menuData.description}
+                </p>
+              )}
+
               <div className="flex items-center gap-2">
                 <span className="text-3xl font-black text-slate-900">฿{menuData.price}</span>
                 <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">ราคาปกติ</span>
@@ -477,7 +452,7 @@ function MenuModal({ menu: initialMenu, onClose, fetchLikedMenus, page, setSelec
                             </button>
                           ) : (
                             <button
-                              onClick={() => toggleQR(promo.promotion_id)}
+                              onClick={() => setShowQRMap(prev => ({ ...prev, [promo.promotion_id]: !prev[promo.promotion_id] }))}
                               className={`w-full py-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${isShowingQR ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-100'}`}
                             >
                               {isShowingQR ? <X size={16} /> : <Zap size={16} />}

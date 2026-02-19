@@ -240,7 +240,6 @@ class AuthService {
   }
 
   async prediction(userId) {
-
     const checkUser = await this.authRepo.checkUserExists(userId)
     const now = new Date()
     const dbDate = now.toISOString().slice(0, 10)

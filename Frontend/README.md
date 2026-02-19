@@ -18,6 +18,9 @@
 ## ติดตั้ง cors
 - npm install cors
 
+## ติดตั้ง cors
+- npm install  socket.io-client
+
 ## คำสั่ง run
 - npm run dev
 # BaziProject_v0.2

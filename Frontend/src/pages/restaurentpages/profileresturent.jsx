@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
+import apiRestaurant from "../../utils/apiRestaurant";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -44,9 +45,8 @@ function Profilerestaurent() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const res = await axios.post(`${API_URL}/api/restaurant/info`, {}, {
-        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
-      });
+      const res = await apiRestaurant.post("/api/restaurant/info");
+
       const info = res.data?.info?.[0] || null;
       setProfile(info);
       if (info) {
@@ -62,9 +62,8 @@ function Profilerestaurent() {
   const handleCreateUserLink = async (openQR = false) => {
     try {
       setCopyLoading(true);
-      const res = await axios.post(`${API_URL}/api/restaurant/create/user`, {}, {
-        headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" }
-      });
+      const res = await apiRestaurant.post("/api/restaurant/create/user");
+
       const link = res.data?.url || res.data;
       if (!link) return toast.error("ไม่พบลิงก์ที่สร้าง");
       setUserLink(link);
@@ -92,9 +91,8 @@ function Profilerestaurent() {
       setSaving(true);
       const payload = { name: form.name, email: form.email };
       if (form.password) payload.password = form.password;
-      await axios.put(`${API_URL}/api/restaurant/edit`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiRestaurant.put("/api/restaurant/edit", payload);
+
       toast.success("บันทึกข้อมูลสำเร็จ 🎉");
       setOpenEdit(false);
       setForm(prev => ({ ...prev, password: "", confirmPassword: "" }));

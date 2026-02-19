@@ -1,28 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, ChevronRight, User, X, Filter, ArrowUpDown, Utensils, Loader2 } from "lucide-react";
+import { Sparkles, ArrowRight, ChevronRight, Filter, ArrowUpDown, Utensils, Loader2, X, Ticket, CheckCircle2, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
 import useUser from "../../store/useUser";
 import api from "../../utils/api";
+import socket from "../../utils/socket";
 
-
-const API_URL = import.meta.env.VITE_API_URL;
-const FALLBACK_IMAGE = "https://t4.ftcdn.net/jpg/05/72/86/19/360_F_572861950_RfPLbfdWyCYB9B9vCGWuak9UFA0pN5Qo.jpg";
-
+const FALLBACK_IMAGE = "https://res.cloudinary.com/dqqkzucir/image/upload/v1770964754/depositphotos_289179526-stock-photo-white-torn-rolled-paper-light_drbebs.webp";
 const ELEMENTS = ["ไม้", "ไฟ", "ดิน", "ทอง", "น้ำ"];
 
 export default function Allmenu() {
   const navigate = useNavigate();
   const token = useUser((state) => state.token);
-  const user = useUser((state) => state.user);
-
   const [menus, setMenus] = useState([]);
   const [loadingMenus, setLoadingMenus] = useState(false);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [selectedMenu, setSelectedMenu] = useState(null);
-
-  // Filter state
   const [selectedElements, setSelectedElements] = useState([]);
   const [priceSort, setPriceSort] = useState("asc");
 
@@ -30,7 +25,26 @@ export default function Allmenu() {
     if (!token) navigate("/loginuser");
   }, [token, navigate]);
 
-  // แก้บัค: เมื่อเปลี่ยนหน้าหรือ Filter ให้โหลดข้อมูลใหม่และเลื่อนขึ้นบน
+  const fetchFilteredMenus = async () => {
+    try {
+      setLoadingMenus(true);
+      const res = await api.post("/api/auth/menu/filter", {
+        element: selectedElements,
+        price: priceSort,
+        page: page,
+      });
+      const fetchedMenus = res.data.menu || [];
+      setMenus(fetchedMenus);
+      setLastPage(res.data.lastPage || 1);
+      return fetchedMenus;
+    } catch (err) {
+      setMenus([]);
+      return [];
+    } finally {
+      setLoadingMenus(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       fetchFilteredMenus();
@@ -38,285 +52,286 @@ export default function Allmenu() {
     }
   }, [token, page, selectedElements, priceSort]);
 
-  const fetchFilteredMenus = async () => {
-    try {
-      setLoadingMenus(true);
-
-      const res = await api.post("/api/auth/menu/filter", {
-        element: selectedElements,
-        price: priceSort,
-        page: page,
-      });
-
-      setMenus(res.data.menu || []);
-      setLastPage(res.data.lastPage || 1);
-
-    } catch (err) {
-      console.error("fetchFilteredMenus error:", err);
-      setMenus([]);
-    } finally {
-      setLoadingMenus(false);
-    }
-  };
-
-
   const toggleElement = (el) => {
-    setPage(1); // รีเซ็ตหน้าเป็น 1 เสมอเมื่อเปลี่ยนตัวกรอง
+    setPage(1);
     setSelectedElements((prev) =>
       prev.includes(el) ? prev.filter((e) => e !== el) : [...prev, el]
     );
   };
 
-  const handlePriceSort = (sort) => {
-    setPage(1); // รีเซ็ตหน้าเป็น 1 เสมอเมื่อเปลี่ยนการเรียงลำดับ
-    setPriceSort(sort);
-  };
-
   if (!token) return null;
 
   return (
-    <div className="min-h-screen bg-[#FCFBFA] pb-20 antialiased text-slate-900">
-      <main className="container mx-auto px-4 md:px-10 pt-10 md:pt-16 max-w-7xl space-y-10">
-        <HeaderSection user={user} />
+    <div className="min-h-screen bg-[#fcfdfe] pb-24 antialiased text-slate-900 overflow-x-hidden">
+      <main className="container mx-auto px-4 md:px-8 pt-8 max-w-6xl space-y-8">
 
-        {/* FILTER BAR - สไตล์พรีเมียม */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-red-900 font-black uppercase tracking-widest text-xs">
-            <Filter size={14} />
-            <span>ปรับแต่งการค้นหา</span>
+        <header className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="h-[2px] w-6 bg-red-500 rounded-full" />
+            <span className="text-red-600 font-black tracking-[0.15em] text-[9px] uppercase">Catalogue</span>
           </div>
-          <FilterBar
-            selectedElements={selectedElements}
-            toggleElement={toggleElement}
-            priceSort={priceSort}
-            setPriceSort={handlePriceSort}
-          />
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">เลือกอาหารมงคลตามธาตุ</h1>
+        </header>
+
+        <div className="space-y-3 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-2 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
+            <Filter size={12} />
+            <span>ค้นหาตามพลังงานธาตุ</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ELEMENTS.map((el) => (
+              <button
+                key={el}
+                onClick={() => toggleElement(el)}
+                className={`px-4 py-1.5 rounded-xl font-bold text-[11px] transition-all border 
+                  ${selectedElements.includes(el) ? "bg-slate-900 border-slate-900 text-white shadow-md" : "bg-white border-slate-200 text-slate-500 hover:border-red-200 hover:text-red-600"}`}
+              >
+                {el}
+              </button>
+            ))}
+          </div>
+          <div className="pt-2 flex items-center justify-between border-t border-slate-50">
+            <span className="text-[10px] font-bold text-slate-400 uppercase">เรียงลำดับราคา</span>
+            <div className="flex gap-2">
+              <button onClick={() => setPriceSort("asc")} className={`text-[10px] font-black px-3 py-1 rounded-lg transition-colors ${priceSort === 'asc' ? 'bg-red-50 text-red-600' : 'text-slate-400'}`}>น้อยไปมาก</button>
+              <button onClick={() => setPriceSort("desc")} className={`text-[10px] font-black px-3 py-1 rounded-lg transition-colors ${priceSort === 'desc' ? 'bg-red-50 text-red-600' : 'text-slate-400'}`}>มากไปน้อย</button>
+            </div>
+          </div>
         </div>
 
-        <RecommendedMenusSection
-          menus={menus}
-          loading={loadingMenus}
-          page={page}
-          lastPage={lastPage}
-          setPage={setPage}
-          setSelectedMenu={setSelectedMenu}
-        />
+        <section className="space-y-6">
+          {loadingMenus ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => <div key={i} className="aspect-[3/4] bg-slate-100 animate-pulse rounded-3xl" />)}
+            </div>
+          ) : menus.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {menus.map((menu) => (
+                <MenuCard key={menu.id} menu={menu} onClick={() => setSelectedMenu(menu)} />
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 text-center bg-white rounded-[2rem] border border-dashed border-slate-200">
+              <Utensils className="mx-auto text-slate-200 mb-2" size={40} />
+              <p className="text-slate-400 text-sm font-bold">ไม่พบเมนูที่คุณต้องการ</p>
+            </div>
+          )}
+
+          {lastPage > 1 && (
+            <div className="flex justify-center pt-4">
+              <div className="flex items-center gap-1 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 text-[12px] font-bold">
+                <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="p-2 hover:bg-slate-50 disabled:opacity-20"><ChevronRight size={16} className="rotate-180" /></button>
+                <span className="px-3 text-slate-600">หน้า {page} / {lastPage}</span>
+                <button disabled={page === lastPage} onClick={() => setPage(p => p + 1)} className="p-2 hover:bg-slate-50 disabled:opacity-20"><ChevronRight size={16} /></button>
+              </div>
+            </div>
+          )}
+        </section>
       </main>
 
       <AnimatePresence>
         {selectedMenu && (
-          <MenuModal menu={selectedMenu} onClose={() => setSelectedMenu(null)} />
+          <MenuModal
+            menu={selectedMenu}
+            onClose={() => setSelectedMenu(null)}
+            fetchFilteredMenus={fetchFilteredMenus} // ✅ แก้เป็นชื่อนี้
+            page={page}
+            setSelectedMenu={setSelectedMenu}
+          />
         )}
       </AnimatePresence>
     </div>
   );
 }
 
-/* ================= COMPONENTS ================= */
-
-function HeaderSection({ user }) {
-  return (
-    <header className="space-y-1">
-      <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">
-        ขอให้ทานอาหารอย่างมีความสุข,
-      </h1>
-      <h1 className="text-2xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-700 to-amber-600">
-        {user?.displayName || user?.name}
-      </h1>
-    </header>
-  );
-}
-
-function FilterBar({ selectedElements, toggleElement, priceSort, setPriceSort }) {
-  return (
-    <div className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl shadow-red-900/5 border border-amber-100 flex flex-col lg:flex-row lg:items-center gap-6">
-
-      {/* Element Filters */}
-      <div className="flex flex-wrap gap-2 flex-grow">
-        {ELEMENTS.map((el) => {
-          const isActive = selectedElements.includes(el);
-          return (
-            <button
-              key={el}
-              onClick={() => toggleElement(el)}
-              className={`px-5 py-2 rounded-full font-black text-xs md:text-sm transition-all border-2 
-                ${isActive
-                  ? "bg-red-900 border-red-900 text-amber-400 shadow-lg scale-105"
-                  : "bg-white border-slate-100 text-slate-400 hover:border-amber-200 hover:text-red-700"}`}
-            >
-              ธาตุ{el}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Price Sort */}
-      <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-        <button
-          onClick={() => setPriceSort("asc")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all ${priceSort === "asc" ? "bg-white shadow-sm text-red-700" : "text-slate-400"
-            }`}
-        >
-          <ArrowUpDown size={14} /> ราคา: น้อยไปมาก
-        </button>
-        <button
-          onClick={() => setPriceSort("desc")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all ${priceSort === "desc" ? "bg-white shadow-sm text-red-700" : "text-slate-400"
-            }`}
-        >
-          <ArrowUpDown size={14} className="rotate-180" /> ราคา: มากไปน้อย
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function RecommendedMenusSection({ menus, loading, page, lastPage, setPage, setSelectedMenu }) {
-  return (
-    <section className="space-y-8">
-      {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-10">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="aspect-[3/4] bg-slate-100 animate-pulse rounded-[2.5rem]" />
-          ))}
-        </div>
-      ) : menus.length > 0 ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-10">
-          {menus.map((menu) => (
-            <MenuCard key={menu.id} menu={menu} onClick={() => setSelectedMenu(menu)} />
-          ))}
-        </div>
-      ) : (
-        <div className="py-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-200">
-          <Utensils className="mx-auto text-slate-200 mb-4" size={48} />
-          <p className="text-slate-400 font-bold">ไม่พบเมนูที่ตรงตามเงื่อนไข</p>
-        </div>
-      )}
-
-      {/* Pagination สไตล์พรีเมียม */}
-      {lastPage > 1 && (
-        <div className="flex justify-center pt-8">
-          <div className="flex items-center gap-1 bg-red-950 p-1.5 rounded-full shadow-2xl border border-amber-500/30">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="w-10 h-10 flex items-center justify-center text-amber-500 disabled:opacity-20 hover:bg-white/10 rounded-full transition-all"
-            >
-              <ChevronRight size={20} className="rotate-180" />
-            </button>
-            <span className="px-4 text-white font-black text-sm">
-              {page} / {lastPage}
-            </span>
-            <button
-              disabled={page === lastPage}
-              onClick={() => setPage((p) => p + 1)}
-              className="w-10 h-10 flex items-center justify-center text-amber-500 disabled:opacity-20 hover:bg-white/10 rounded-full transition-all"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
 function MenuCard({ menu, onClick }) {
+  const hasPromo = (menu.canUsePromotion === true || menu.canUsePromotion === 1) &&
+    Array.isArray(menu.promotions) && menu.promotions.length > 0;
+  const bestPrice = hasPromo ? Math.min(...menu.promotions.map(p => parseFloat(p.total))) : menu.price;
+
   return (
     <motion.div
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="group cursor-pointer bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-xl shadow-red-900/5 overflow-hidden border border-slate-50 flex flex-col h-full"
+      className="group cursor-pointer bg-white rounded-[1.5rem] shadow-sm border border-slate-100 flex flex-col h-full relative overflow-hidden"
     >
-      <div className="relative aspect-square overflow-hidden">
-        <img
-          src={menu.image_url || FALLBACK_IMAGE}
-          alt={menu.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-        />
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1">
+      <div className="relative aspect-[4/5] overflow-hidden bg-slate-50">
+        <img src={menu.image_url || FALLBACK_IMAGE} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="" />
+        
+        {hasPromo && <div className="absolute top-2 right-2 bg-red-600 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-sm">ลดราคา</div>}
+      </div>
+      <div className="p-3.5 space-y-1">
+        <h3 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-red-600 transition-colors">
+          {menu.name}
+        </h3>
+        <div className="flex flex-wrap gap-1">
           {menu.element?.map(el => (
-            <span key={el} className="px-3 py-1 bg-red-900/90 text-amber-400 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest">
+            <span key={el} className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[8px] font-black uppercase">
               {el}
             </span>
           ))}
         </div>
-      </div>
-      <div className="p-4 md:p-6 space-y-2 flex-grow flex flex-col justify-between">
-        <div>
-          <h3 className="font-black text-sm md:text-xl text-slate-800 line-clamp-2 leading-tight group-hover:text-red-700 transition-colors">
-            {menu.name}
-          </h3>
-        </div>
-        <div className="flex justify-between items-center pt-2">
-          <p className="text-red-700 font-black text-base md:text-2xl">฿{menu.price}</p>
-          <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-700 group-hover:bg-red-700 group-hover:text-white transition-all">
-            <ArrowRight size={16} />
-          </div>
+        <div className="flex items-baseline gap-1.5 pt-1">
+          <span className="text-base font-black text-slate-900">฿{bestPrice}</span>
+          {hasPromo && <span className="text-[10px] text-slate-400 line-through">฿{menu.price}</span>}
         </div>
       </div>
     </motion.div>
   );
 }
 
-function MenuModal({ menu, onClose }) {
+function MenuModal({ menu: initialMenu, onClose, fetchFilteredMenus, page, setSelectedMenu }) {
+  const joinedRoomsRef = useRef(new Set());
+  const [menuData, setMenuData] = useState(initialMenu);
+  const [claimingId, setClaimingId] = useState(null);
+  const [showQRMap, setShowQRMap] = useState({});
+  const [isUsedSuccess, setIsUsedSuccess] = useState(false);
+
+  const handleClose = () => {
+    joinedRoomsRef.current.forEach(code => socket.emit("leaveCoupon", code));
+    joinedRoomsRef.current.clear();
+    onClose();
+  };
+
+  useEffect(() => {
+    setMenuData(initialMenu);
+    setShowQRMap({});
+    setIsUsedSuccess(false);
+  }, [initialMenu]);
+
+  useEffect(() => {
+    if (!menuData?.promotions) return;
+    const claimedCoupons = menuData.promotions.filter(p => p.coupon_code).map(p => p.coupon_code);
+    if (claimedCoupons.length === 0) return;
+
+    claimedCoupons.forEach(code => {
+      if (!joinedRoomsRef.current.has(code)) {
+        socket.emit("joinCoupon", code);
+        joinedRoomsRef.current.add(code);
+      }
+    });
+
+    const handleUpdate = async (data) => {
+      if (!data?.code || data.status !== "USED") return;
+      if (claimedCoupons.includes(data.code)) {
+        setIsUsedSuccess(true);
+        const freshMenus = await fetchFilteredMenus();
+        const freshMenu = freshMenus.find(m => m.id === menuData.id);
+        if (freshMenu) {
+          setMenuData(freshMenu);
+          setSelectedMenu(freshMenu);
+        }
+      }
+    };
+    socket.off("couponUpdated");
+    socket.on("couponUpdated", handleUpdate);
+    return () => socket.off("couponUpdated", handleUpdate);
+  }, [menuData?.promotions, menuData?.id, fetchFilteredMenus, setSelectedMenu]);
+
+  const hasPromo = (menuData.canUsePromotion === true || menuData.canUsePromotion === 1) &&
+    Array.isArray(menuData.promotions) && menuData.promotions.length > 0;
+
+  const handleClaimCoupon = async (promoId) => {
+    try {
+      setClaimingId(promoId);
+      await api.post("/api/auth/coupon/add", { promotion_id: promoId });
+      const freshMenus = await fetchFilteredMenus();
+      const freshMenu = freshMenus.find(m => m.id === menuData.id);
+      if (freshMenu) {
+        setMenuData(freshMenu);
+        setSelectedMenu(freshMenu);
+      }
+      setShowQRMap(prev => ({ ...prev, [promoId]: true }));
+    } catch (err) {
+      alert(err.response?.data?.message || "เกิดข้อผิดพลาด");
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-red-950/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleClose} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
 
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        className="bg-white rounded-t-[2.5rem] md:rounded-[3.5rem] w-full max-w-4xl overflow-hidden relative z-10 shadow-2xl max-h-[95vh] overflow-y-auto"
+        layoutId={`modal-${menuData.id}`}
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        className="bg-white rounded-[2.5rem] w-full max-w-4xl overflow-hidden relative shadow-2xl z-10 max-h-[85vh] flex flex-col md:flex-row"
       >
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 bg-red-50 text-red-900 p-2 rounded-full hover:bg-red-900 hover:text-white transition-all">
-          <X size={24} />
-        </button>
+        <AnimatePresence>
+          {isUsedSuccess && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-10">
+              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-sm"><CheckCircle2 size={40} /></div>
+              <h3 className="text-2xl font-black text-slate-900">ใช้คูปองสำเร็จ!</h3>
+              <p className="text-slate-500 mt-2">รายการนี้ได้รับการยืนยันเรียบร้อยแล้ว</p>
+              <button onClick={handleClose} className="mt-8 bg-slate-900 text-white px-10 py-3.5 rounded-2xl font-bold">ตกลง</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="flex flex-col md:flex-row">
-          <div className="w-full md:w-1/2 h-72 md:h-[550px]">
-            <img src={menu.image_url || FALLBACK_IMAGE} className="w-full h-full object-cover" />
-          </div>
-          <div className="p-8 md:p-12 md:w-1/2 space-y-6 flex flex-col justify-center">
-            <div className="space-y-3">
-              <div className="flex gap-2 flex-wrap">
-                {menu.element?.map(el => (
-                  <span
-                    key={el}
-                    className="text-[10px] font-black text-red-700 bg-red-50 px-2.5 py-1 rounded-full border border-red-100 uppercase tracking-widest"
-                  >
-                    ธาตุ{el}
-                  </span>
-                ))}
+        <button onClick={handleClose} className="absolute top-5 right-5 z-20 bg-white/80 p-2.5 rounded-full hover:bg-white text-slate-400 hover:text-red-600 shadow-sm"><X size={20} /></button>
+
+        <div className="md:w-1/2 h-64 md:h-auto overflow-hidden">
+          <img src={menuData.image_url || FALLBACK_IMAGE} className="w-full h-full object-cover" alt="" />
+        </div>
+
+        <div className="p-8 md:p-10 md:w-1/2 flex flex-col overflow-y-auto custom-scrollbar bg-white">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight">{menuData.name}</h2>
+              {/* ✅ เพิ่มคำอธิบายเมนู */}
+              {menuData.description && <p className="text-slate-500 text-xs md:text-sm leading-relaxed">{menuData.description}</p>}
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-black text-slate-900">฿{menuData.price}</span>
+                <span className="text-[10px] text-slate-400 font-bold border px-2 py-0.5 rounded-md uppercase">Regular Price</span>
               </div>
-
-              <h2 className="text-2xl md:text-4xl font-black text-slate-900 leading-tight">
-                {menu.name}
-              </h2>
-
-              <p className="text-2xl font-black text-amber-600">
-                ฿{menu.price}
-              </p>
-
-              {/* ✅ description */}
-              <p className="text-sm md:text-base text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-                {menu.description || "ไม่มีรายละเอียดเพิ่มเติม"}
-              </p>
             </div>
 
-
-
-
-            <button onClick={onClose} className="w-full py-4 bg-red-900 text-amber-400 rounded-2xl font-black text-lg transition-all shadow-xl shadow-red-900/20 active:scale-95">
-              รับทราบเมนูมงคล
-            </button>
+            {hasPromo ? (
+              <div className="space-y-4 pt-6 border-t border-slate-100">
+                <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2"><Ticket size={18} className="text-red-600" /> สิทธิพิเศษสำหรับคุณ</h4>
+                <div className="space-y-4">
+                  {menuData.promotions.map((promo) => {
+                    const isClaimed = !!promo.coupon_code;
+                    const isShowingQR = showQRMap[promo.promotion_id];
+                    return (
+                      <div key={promo.promotion_id} className="bg-slate-50 p-5 rounded-[2rem] border border-slate-100 flex flex-col gap-4 relative group">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xl font-black text-red-600">฿{promo.total}</span>
+                              <span className="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">Discount</span>
+                            </div>
+                            <p className="font-bold text-slate-900 text-sm leading-tight">{promo.name}</p>
+                            <p className="text-[11px] text-slate-500 mt-1">{promo.description}</p>
+                          </div>
+                          <AnimatePresence>
+                            {isClaimed && isShowingQR && (
+                              <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} className="bg-white p-2 rounded-2xl border border-red-50 shadow-sm"><QRCodeSVG value={promo.coupon_code} size={70} /></motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                        <div className="flex flex-col gap-2 pt-3 border-t border-dashed border-slate-200">
+                          {!isClaimed ? (
+                            <button disabled={claimingId === promo.promotion_id} onClick={() => handleClaimCoupon(promo.promotion_id)} className="w-full bg-slate-900 hover:bg-red-600 text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                              {claimingId === promo.promotion_id ? <Loader2 size={16} className="animate-spin" /> : <><Ticket size={16} /> รับส่วนลดเหลือ ฿{promo.total}</>}
+                            </button>
+                          ) : (
+                            <button onClick={() => setShowQRMap(prev => ({ ...prev, [promo.promotion_id]: !prev[promo.promotion_id] }))} className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${isShowingQR ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-100'}`}>
+                              {isShowingQR ? <X size={16} /> : <Zap size={16} />} {isShowingQR ? 'ปิดหน้าจอ QR' : 'แสดง QR Code เพื่อใช้งาน'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center border-t border-slate-50"><p className="text-slate-400 text-sm italic">ไม่มีโปรโมชั่นสำหรับเมนูนี้ในขณะนี้</p></div>
+            )}
+            <button onClick={handleClose} className="w-full py-4 text-slate-300 font-black text-[10px] hover:text-red-500 uppercase tracking-[0.25em]">ปิดหน้าต่างเมนู</button>
           </div>
         </div>
       </motion.div>

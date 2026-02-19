@@ -19,7 +19,7 @@ routes.post(
   asyncHandler(createRestaurant)
 )
 
-routes.get(
+routes.post(
   "/admin/restaurant",
   authenticateToken,
   requireRole("ADMIN"),

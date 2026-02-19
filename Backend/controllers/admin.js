@@ -5,7 +5,7 @@ const adminService = new AdminService()
 
 const handleServerError = (res, error, context) => {
   console.error(`[${context} Error]`, error)
-  return res.status(500).json({ 
+  return res.status(500).json({
     message: 'An error occurred while processing your request',
     code: 'INTERNAL_SERVER_ERROR'
   })
@@ -34,7 +34,7 @@ export const login = async (req, res) => {
 
   } catch (error) {
     if (error.message === 'Invalid email or password') {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'Invalid credentials',
         code: 'INVALID_CREDENTIALS'
       })
@@ -101,7 +101,7 @@ export const createRestaurant = async (req, res) => {
     res.status(201).json({ message: 'Restaurant created successfully' })
   } catch (error) {
     if (error.message === 'Duplicate Email') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Email already exists',
         code: 'DUPLICATE_EMAIL'
       })
@@ -119,11 +119,20 @@ export const getAllRestaurant = async (req, res) => {
   }
 }
 
+export const getAllMemberRestaurant = async (req, res) => {
+  try {
+    const { restaurantId } = req.body
+    const result = await adminService.getAllMemberRestaurant(restaurantId)
+    return res.status(200).json(result)
+  } catch (error) {
+    return handleServerError(res, error, 'getAllMemberRestaurant')
+  }
+}
 export const updateUserByAdmin = async (req, res) => {
   try {
     const data = req.body || {}
     if (!Object.keys(data).length) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Request body is required",
         code: 'MISSING_REQUEST_BODY'
       })
@@ -133,7 +142,7 @@ export const updateUserByAdmin = async (req, res) => {
     return res.status(200).json({ message: "Update successful" })
   } catch (error) {
     if (error.message === 'User not found') {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'User not found',
         code: 'USER_NOT_FOUND'
       })
@@ -149,13 +158,13 @@ export const deleteUserByAdmin = async (req, res) => {
     return res.status(200).json({ message: 'Delete successful' })
   } catch (error) {
     if (error.message === 'User not found') {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'User not found',
         code: 'USER_NOT_FOUND'
       })
     }
     if (error.message === 'userId is required') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'User id is required',
         code: 'MISSING_USER_ID'
       })
@@ -171,7 +180,7 @@ export const deleteRestaurantByAdmin = async (req, res) => {
     return res.status(200).json({ message: 'Delete successful' })
   } catch (error) {
     if (error.message === 'Restaurant not found') {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'Restaurant not found',
         code: 'RESTAURANT_NOT_FOUND'
       })

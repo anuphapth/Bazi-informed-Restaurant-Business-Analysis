@@ -15,6 +15,7 @@ import {
   encodeShort,
 } from '../utils/cryptoUtil.js'
 import { executeQueryWithTransaction } from '../lib/db.js'
+import axios from 'axios'
 
 dotenv.config()
 
@@ -172,12 +173,14 @@ class RestaurantService {
     return await executeQueryWithTransaction(async (client) => {
 
       if (data.discount_value <= 0 || data.discount_value > 100) {
-        throw new Error('Discount Error')
+        throw new Error('Discount Error');
       }
-      const menus = await this.restaurantRepo.findMenuByElement(client, data.element);
+
+      const menus = await this.restaurantRepo.findMenuByElement(client, data.element, restaurantId)
+
 
       if (!menus || menus.length === 0) {
-        throw new Error('No menus match the specified elements');
+        throw new Error('No menus match the specified elements')
       }
 
       const promotionGroupId =
@@ -186,20 +189,97 @@ class RestaurantService {
           restaurant_id: restaurantId
         });
 
-      for (const menu of menus) {
+        for (const menu of menus) {
         await this.restaurantRepo.createPromotionMapping(
           client,
           promotionGroupId,
           menu.id
         );
       }
+      const promotionElements = [
+        ...new Set(
+          menus.flatMap(menu => menu.element).filter(element => data.element.includes(element))
+        )
+      ]
+
+      await this.pushPromotionAsync(promotionElements, restaurantId, {
+        name: data.name,
+        description: data.description,
+        element: promotionElements.join(', '),
+        discount_value: data.discount_value
+      })
 
       return {
-        message: "Promotion created successfully",
         promotionGroupId,
+        message: "Promotion created successfully",
         totalMenus: menus.length
-      };
-    });
+      }
+    })
+  }
+
+  async pushPromotionAsync(targetElements, restaurantId, promotion) {
+    setImmediate(async () => {
+      try {
+        const users = await this.restaurantRepo.findUsersByElements(restaurantId, targetElements)
+
+        if (!users || users.length === 0) {
+          return;
+        }
+
+        await this.pushPromotion(users, promotion, restaurantId)
+      } catch (err) {
+        console.error('Push Promotion Error:', err.response?.data || err.message);
+      }
+    })
+  }
+
+  async pushPromotion(users, promotion, restaurantId) {
+    const chunks = this.chunkArray(users, 100)
+    const URL = await this.regisUserbyRestaurant(restaurantId);
+    const restaurantName = await this.restaurantRepo.getRestaurantById(restaurantId)
+    const messageText = `🎉 โปรโมชั่นพิเศษสำหรับคุณ!
+🏪 ร้านค้า: ${restaurantName[0].name || 'ร้านค้าไม่ระบุ'}
+📌 ชื่อโปรโมชัน: ${promotion?.name ?? '-'}
+📝 รายละเอียด: ${promotion?.description ?? '-'}
+🔥 ธาตุที่เข้าร่วม: ${promotion?.element ?? '-'}
+💸 ส่วนลด: ${promotion?.discount_value ?? 0}%
+
+ ตรจจสอบโปรโมชันได้ที่ ${URL}
+ รีบใช้ก่อนหมดเขตนะ ✨
+`;
+
+    for (const group of chunks) {
+      await Promise.all(
+        group.map(user =>
+          axios.post(
+            'https://api.line.me/v2/bot/message/push',
+            {
+              to: user.line_uid,
+              messages: [
+                {
+                  type: 'text',
+                  text: messageText
+                }
+              ]
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          )
+        )
+      )
+    }
+  }
+
+  chunkArray(array, size) {
+    const result = [];
+    for (let i = 0; i < array.length; i += size) {
+      result.push(array.slice(i, i + size));
+    }
+    return result;
   }
 
   async getAllPromotion(restaurantId) {
@@ -311,24 +391,14 @@ class RestaurantService {
   }
 
 
-  async restaurantUser(restaurantId, page) {
-    const limit = 12
-    const offset = (page - 1) * limit
+  async restaurantUser(restaurantId) {
+    const user = await this.restaurantRepo.findUser(restaurantId)
 
-    const user = await this.restaurantRepo.findUser(restaurantId, limit, offset)
-
-    if (user.length === 0) {
-      throw new Error('No users found in restaurant')
-    }
-
-    const element = await this.restaurantRepo.collectElement()
-    const rows = await this.restaurantRepo.getAllUserRows(restaurantId)
-    const lastPage = Math.ceil(rows[0].total / limit)
+    const element = await this.restaurantRepo.collectElement(restaurantId)
 
     return {
-      lastPage,
       element: element || [],
-      user: user || [],
+      user: user || []
     }
   }
 

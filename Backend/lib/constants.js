@@ -58,13 +58,13 @@ const constants = {
     "UPDATE users SET name = COALESCE($1, name), gender = COALESCE($2, gender), phone = COALESCE($3, phone), birth_date = COALESCE($4, birth_date), birth_time = COALESCE($5, birth_time), birth_place = COALESCE($6, birth_place), updated_at = CURRENT_TIMESTAMP WHERE id = $7",
 
   findUser: `
-    SELECT u.id, u.name, u.line_uid, u.phone, u.gender, u.created_at,
-           e.main_element, e.favorable_elements
-    FROM users u
-    LEFT JOIN user_elements e ON u.id = e.user_id
-    WHERE u.restaurant_id = $1
-    ORDER BY u.created_at DESC
-    LIMIT $2 OFFSET $3
+SELECT u.id, u.name, u.line_uid, u.phone, u.gender, u.created_at,
+       split_part(e.main_element, ' ', 1) AS main_element,
+       e.favorable_elements
+FROM users u
+LEFT JOIN user_elements e ON u.id = e.user_id
+WHERE u.restaurant_id = $1
+ORDER BY u.created_at DESC
   `,
 
   // User elements queries
@@ -80,10 +80,12 @@ const constants = {
   `,
 
   coolactElement: `
-    SELECT main_element, COUNT(*) as count
-    FROM user_elements
-    GROUP BY main_element
-    ORDER BY count DESC
+SELECT 
+  split_part(main_element, ' ', 1) AS main_element,
+  COUNT(*) as count
+FROM user_elements
+GROUP BY split_part(main_element, ' ', 1)
+ORDER BY count DESC
   `,
 
   // Prediction queries
@@ -434,7 +436,6 @@ WHERE
     )
 `,
 
-
   getAllrowMenuElementLike: `
 SELECT COUNT(*) AS total
 FROM menu m
@@ -452,10 +453,11 @@ WHERE m.restaurant_id = $1
   `,
 
   findMenuelelemet: `
-    SELECT id, name, price
-    FROM menu
-    WHERE element::jsonb @> $1::jsonb
-      AND status = 'AVAILABLE'
+SELECT id, name, price, element::jsonb 
+FROM menu
+WHERE restaurant_id = $1 
+AND element @> $2::jsonb
+
   `,
 
   // Promotion queries
@@ -475,7 +477,6 @@ LIMIT 1
      WHERE user_id = $1 AND promotion_id = $2
      LIMIT 1
 `,
-
 
   getAllPromotionByRestaurant: `
 SELECT
@@ -511,6 +512,17 @@ ORDER BY pg.id, m.name;
   VALUES ($1, $2)
 `,
 
+findUserByElemets: `
+SELECT u.line_uid
+    FROM users u
+    JOIN user_elements ue ON ue.user_id = u.id
+    WHERE u.restaurant_id = $1
+      AND u.status = 'ACTIVE'
+      AND (
+        ue.favorable_elements @> ANY($2::jsonb[])
+      )
+      AND u.line_uid IS NOT NULL;
+`,
   getPromotionGroup: `
 SELECT 
   pg.id AS promotion_group_id,
@@ -564,11 +576,14 @@ RETURNING id;
   c.id as coupon_id,
   c.status,
   c.code,
+  u.restaurant_id,
   pg.discount_value,
   pg.start_date,
   pg.end_date,
   pg.status as promotion_status
 FROM coupons c
+JOIN users u
+  ON c.user_id = u.id
 JOIN promotions p 
   ON c.promotion_id = p.id
 JOIN promotion_groups pg 
@@ -578,9 +593,12 @@ LIMIT 1
   `,
 
   useCoupon: `
-    UPDATE coupons
-    SET status = 'USED', used_at = CURRENT_TIMESTAMP
-    WHERE id = $1
+UPDATE coupons
+SET status = 'USED',
+    used_at = CURRENT_TIMESTAMP
+WHERE id = $1
+AND status = 'UNUSED'
+RETURNING id
   `,
 
   adminLogin: `
@@ -621,15 +639,15 @@ ORDER BY r.id;
   WHERE id = $7
   `,
 
-  adminDeleteUser:`
+  adminDeleteUser: `
   DELETE FROM users WHERE id = $1
   `,
 
-  checkRestaurant:`
+  checkRestaurant: `
   SELECT * FROM restaurants WHERE id = $1
   `,
 
-  deleteRestaurantByAdmin:`
+  deleteRestaurantByAdmin: `
   DELETE FROM restaurants WHERE id = $1
   `,
 }

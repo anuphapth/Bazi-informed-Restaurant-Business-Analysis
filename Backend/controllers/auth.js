@@ -1,5 +1,4 @@
 import AuthService from '../services/auth.service.js'
-
 const authService = new AuthService()
 
 export const lineUIDCheck = async (req, res) => {
@@ -174,14 +173,21 @@ export const createCoupon = async (req, res) => {
 
 export const useCoupon = async (req, res) => {
   try {
+
     const { code } = req.body
 
     const result = await authService.useCoupon(code)
 
-    return res.status(200).json(result)
+    const io = req.app.get("io")
 
+    io.to(code).emit("couponUpdated", {
+      code,
+      status: "USED"
+    })
+
+
+    return res.status(200).json(result)
   } catch (error) {
-    console.error('[UseCoupon Error]', error)
 
     if (
       error.message.includes('Invalid') ||
@@ -192,6 +198,7 @@ export const useCoupon = async (req, res) => {
       return res.status(400).json({ message: error.message })
     }
 
+    console.error('[UseCoupon Error]', error)
     return res.status(500).json({ message: 'Server error' })
   }
 }

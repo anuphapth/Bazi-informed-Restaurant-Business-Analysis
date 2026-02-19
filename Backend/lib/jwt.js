@@ -4,8 +4,8 @@ import { executeQuery } from "./db.js"
 import dotenv from "dotenv"
 dotenv.config()
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key-change-in-production"
+const JWT_SECRET = process.env.JWT_SECRET
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET
 
 // Token expiration times
 const ACCESS_TOKEN_EXPIRY = "30m"

@@ -55,6 +55,10 @@ class AdminService {
     return await this.adminRepo.getAllRestaurantByAdmin()
   }
 
+  async getAllMemberRestaurant() {
+    
+  }
+
   async checkUserExiting(data) {
     if (!data || (!data.id && !data.userId)) {
       throw new Error('userId is required');

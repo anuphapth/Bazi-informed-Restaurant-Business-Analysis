@@ -20,6 +20,10 @@ class AdminRepository {
     return await executeQuery(constants.adminGetAllRestaurant)
   }
 
+  async getAllMemberRestaurant() {
+
+  }
+  
   async getUserById(userId) {
     return await executeQuery(constants.CheckUserByID, [userId])
   }

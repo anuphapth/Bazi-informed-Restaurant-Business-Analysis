@@ -78,10 +78,9 @@ routes.post(
   authValidation.createCoupon,
   asyncHandler(createCoupon),
 )
+
 routes.post(
   "/auth/coupon/use",
-  authenticateToken,
-  requireRole("USER"),
   authValidation.useCoupon,
   asyncHandler(useCoupon),
 )

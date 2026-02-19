@@ -115,21 +115,21 @@ export const createPromotion = async (req, res) => {
     const result = await restaurantService.createPromotion(
       req.body,
       restaurantId
-    );
+    )
 
-    return res.status(201).json(result);
+    return res.status(201).json(result)
   } catch (error) {
     if (error.message === 'Discount Error') {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: error.message })
     }
     if (error.message === 'No menus match the specified elements') {
-      return res.status(404).json({ message: error.message });
+      return res.status(404).json({ message: error.message })
     }
 
-    console.error('[CreatePromotion Error]', error);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('[CreatePromotion Error]', error)
+    return res.status(500).json({ message: 'Server error' })
   }
-};
+}
 
 export const getAllPromotion = async (req, res) => {
   try {
@@ -187,8 +187,7 @@ export const deletePromotionGroup = async (req, res) => {
 export const restaurantUser = async (req, res) => {
   try {
     const restaurantId = req.user.restaurantId
-    const { page } = req.body
-    const result = await restaurantService.restaurantUser(restaurantId, page)
+    const result = await restaurantService.restaurantUser(restaurantId)
     return res.status(200).json(result)
   } catch (error) {
     console.error('[RestaurantUser Error]', error)

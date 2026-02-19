@@ -14,7 +14,7 @@ import {
   encodeShort,
   decodeShort,
 } from '../utils/cryptoUtil.js'
-import { decode } from 'punycode'
+import { buildPredictionPrompt } from '../lib/predictionPrompt.js'
 
 dotenv.config()
 
@@ -97,11 +97,11 @@ class AuthService {
     })
 
     const userId = createUserResult[0].id
-
+    const BaziURL = process.env.BAZI_URL
     let baziResponse
     try {
       baziResponse = await axios.post(
-        'https://www.thailandfxwarrior.com/node/api/v1/bazi',
+        BaziURL,
         {
           name: data.name,
           bday: day,
@@ -129,11 +129,13 @@ class AuthService {
     }
 
     const summary = baziResponse.data.summary
-    const main_element = summary.dayMaster?.elementTh
+
+    const main_element = `${summary?.dayMaster?.elementTh ?? ''} ${summary?.dayMaster?.polarity ?? ''} ${summary?.statusText ?? ''}`.trim()
+
     const favorable_elements = summary.favorableElements
     const unfavorable_elements = summary.unfavorableElements
 
-    if (!main_element || !VALID_ELEMENTS.includes(main_element)) {
+    if (!main_element) {
       throw new Error('Invalid element data')
     }
 
@@ -176,6 +178,11 @@ class AuthService {
 
   async preEditProfile(userId) {
     const info = await this.authRepo.getUserById(userId)
+
+    if (info.length > 0 && info[0].main_element) {
+      info[0].main_element = info[0].main_element.split(' ')[0]
+    }
+
     return { info }
   }
 
@@ -196,11 +203,12 @@ class AuthService {
       data.birth_place !== undefined
 
     if (birthChanged) {
+      const BaziURL = process.env.BAZI_URL
       const [year, month, day] = (data.birth_date ?? user.birth_date).split('-').map(Number)
       const [hour, minute] = (data.birth_time ?? user.birth_time).split(':').map(Number)
 
       const baziResponse = await axios.post(
-        'https://www.thailandfxwarrior.com/node/api/v1/bazi',
+        BaziURL,
         {
           name: data.name ?? user.name,
           bday: day,
@@ -234,14 +242,17 @@ class AuthService {
   }
 
   async prediction(userId) {
-    
     const checkUser = await this.authRepo.checkUserExists(userId)
-    if (checkUser.length === 0) {
-      throw new Error('User not found')
-    }
+    const now = new Date()
+    const dbDate = now.toISOString().slice(0, 10)
+    const today = now.toLocaleDateString('th-TH', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
 
-    const today = new Date().toISOString().slice(0, 10)
-    const existingPrediction = await this.authRepo.getPredictionByUserAndDate(userId, today)
+    const existingPrediction = await this.authRepo.getPredictionByUserAndDate(userId, dbDate)
 
     if (existingPrediction.length > 0) {
       return { message: existingPrediction[0].prediction_text }
@@ -256,93 +267,40 @@ class AuthService {
     }
 
     const groqApiKey = process.env.GROQ_API_KEY
-    if (!groqApiKey) {
+    const AIURL = process.env.GROQ_API_URL
+    const model = process.env.GROQ_MODEL
+    if (!groqApiKey || !AIURL || !model) {
       throw new Error('AI service not configured')
     }
 
-    const prompt = `
-คุณเป็นนักเขียนคอลัมน์ดวงรายวันเชิงบันเทิง
-ภาษาไทย สำนวนธรรมชาติ เหมือนคนเขียนจริง
-เน้นการเล่าบรรยากาศและความรู้สึกของวัน
-ไม่ใช้ภาษาระบบ ไม่อธิบายโหราศาสตร์ และไม่สรุปเชิงทฤษฎี
+    const topics = ["งาน", "เงิน", "ความรัก", "สุขภาพ", "คำพูด", "การตัดสินใจ"];
+    const randomTopic = topics[Math.floor(Math.random() * topics.length)];
 
-ข้อมูลประกอบ
-พลังดวงพื้นฐาน ${element}
-ธาตุที่ส่งเสริม ${favorable_elements}
-ธาตุที่ควรเลี่ยง ${unfavorable_elements}
-วันที่ ${today}
-
-รูปแบบผลลัพธ์
-- แสดงวันที่เป็นบรรทัดแรก
-- เนื้อหาต่อจากนี้เขียนเป็น 3 ย่อหน้า
-- แต่ละย่อหน้าไม่ยาวเกิน 1 บรรทัดบนหน้าจอ
-- แยกย่อหน้าด้วยบรรทัดว่างชัดเจน
-- ห้ามเขียนวันที่ซ้ำในเนื้อหา
-
-แนวการเขียน
-- ใช้ภาษาคน อ่านลื่น เหมือนคอลัมน์ที่อ่านทุกเช้า
-- เขียนในมุมมองบุคคลที่สามหรือเชิงบรรยากาศ
-- แต่ละย่อหน้าใช้ภาพหรืออารมณ์หลักเพียง 1 อย่าง
-- เลี่ยงคำซ้ำและโครงประโยคซ้ำในย่อหน้าเดียว
-- ใช้คำและภาพที่จับต้องได้ หลีกเลี่ยงอุปมาเชิงกวีลอย ๆ
-- เขียนเหมือนบทความที่ไม่ได้พูดกับใครโดยตรง
-- เลี่ยงการชี้ไปที่ผู้อ่าน
-- คำว่า วันนี้ ใช้ได้เฉพาะย่อหน้าที่สามเท่านั้น
-
-ระดับดวง
-- ถ้าคะแนนมากกว่า 7 ถือว่าดวงดีมาก
-- ถ้าคะแนน 4 ถึง 7 ถือว่าดวงปานกลาง
-- ถ้าคะแนนต่ำกว่า 4 ถือว่าดวงแย่
-- หากไม่มีคะแนน ให้ถือเป็นดวงปานกลาง
-- เลือกเพียงระดับเดียวและใช้ให้สอดคล้องทั้ง 3 ย่อหน้า
-
-ย่อหน้าที่ 1
-- เล่าบรรยากาศหรือจังหวะของวัน
-- ห้ามขึ้นต้นด้วยคำว่า วันนี้
-- ใส่อีโมจิระดับดวงเพียงครั้งเดียวต่อท้าย
-  🌟 ⚖️ 💀💀💀💀💀
-- ห้ามใช้อีโมจิในย่อหน้าอื่น
-
-ย่อหน้าที่ 2
-- กล่าวถึงสีที่เหมาะกับวันนี้เพียง 1 สี
-- สีต้องสอดคล้องกับธาตุที่ส่งเสริม
-- เอ่ยชื่อสีได้เพียงครั้งเดียว
-- หลังจากนั้นใช้คำแทน เช่น โทน บรรยากาศ หรือเฉด
-- เขียนเชิงอารมณ์ ไม่อธิบายเหตุผล
-
-ย่อหน้าที่ 3
-- เขียนภาพรวมของวัน ครอบคลุมการใช้ชีวิต งาน เงิน
-- กล่าวถึงของชิ้นเล็กที่พกแล้วช่วยให้วันผ่านไปได้ดี
-- ใช้เพียงประโยคเดียวจบ
-- น้ำเสียงต้องสอดคล้องกับระดับดวง
-- สิ่งของต้องไม่ผิดกฎหมาย
-
-ข้อห้ามสำคัญ
-- ห้ามใช้สรรพนาม ฉัน เรา คุณ ผม ดิฉัน
-- ห้ามใช้แฮชแท็กหรือภาษาสื่อสังคม
-- ห้ามใช้ศัพท์โหราศาสตร์หรือคำสรุประบบ
-- ห้ามอธิบายเหตุผลเชิงตรรกะ เช่น เพราะว่า จึงทำให้
-- ห้ามใช้คำอวยเวอร์หรือทั่วไป เช่น ดีมาก สำเร็จมาก ทำได้ทุกอย่าง
-`
+    const prompt = buildPredictionPrompt({
+      element,
+      favorable_elements,
+      unfavorable_elements,
+      today,
+      randomTopic
+    })
 
     let response
     try {
-      response = await axios.post(
-        'https://api.groq.com/openai/v1/chat/completions',
-        {
-          model: 'llama-3.1-8b-instant',
-          messages: [
-            {
-              role: 'system',
-              content: 'คุณเป็นนักเขียนคอลัมน์ดวงรายวันภาษาไทย สำนวนธรรมชาติ เหมือนคนเขียนจริง ไม่ใช้สำนวนระบบหรือบันทึกส่วนตัว'
-            },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 260,
-          temperature: 0.85,
-          frequency_penalty: 0.6,
-          presence_penalty: 0.4,
-        },
+      response = await axios.post(AIURL, {
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content: 'คุณเป็นนักเขียนคอลัมน์ดวงรายวันภาษาไทย สำนวนธรรมชาติ เหมือนคนเขียนจริง ไม่ใช้สำนวนระบบหรือบันทึกส่วนตัว'
+          },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 70,
+        temperature: 0.65,
+        frequency_penalty: 0.6,
+        presence_penalty: 0.4,
+
+      },
         {
           timeout: 15000,
           headers: {
@@ -365,13 +323,13 @@ class AuthService {
     if (predictionBefore.length > 0) {
       await this.authRepo.updatePrediction({
         userId,
-        prediction_date: today,
+        prediction_date: dbDate,
         prediction_text: recommendation
       })
     } else {
       await this.authRepo.insertPrediction({
         userId,
-        prediction_date: today,
+        prediction_date: dbDate,
         prediction_text: recommendation
       })
     }
@@ -426,7 +384,6 @@ class AuthService {
     }
   }
 
-
   async createCoupon(userId, promotionId) {
 
     const promotion = await this.authRepo.checkPromotion(promotionId)
@@ -449,6 +406,7 @@ class AuthService {
   }
 
   async useCoupon(code) {
+
     const rows = await this.authRepo.checkCoupon(code)
 
     if (rows.length === 0) {
@@ -473,14 +431,20 @@ class AuthService {
       throw new Error('Coupon expired')
     }
 
-    await this.authRepo.useCoupon(coupon.coupon_id)
+    const updated = await this.authRepo.useCoupon(coupon.coupon_id)
+
+    if (updated.rowCount === 0) {
+      throw new Error('Coupon already used')
+    }
 
     return {
       message: 'Coupon applied successfully',
-      discount_value: coupon.discount_value
+      discount_value: coupon.discount_value,
+      coupon_id: coupon.coupon_id,
+      restaurant_id: coupon.restaurant_id,
+      code: coupon.code
     }
   }
-
 
   async refreshAccessToken(refreshToken) {
     if (!refreshToken) {
@@ -493,7 +457,7 @@ class AuthService {
       userType: decoded.userType,
       restaurantId: decoded.restaurantId,
     })
-    
+
     return { accessToken: newAccessToken }
   }
 

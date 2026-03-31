@@ -92,6 +92,7 @@ export const authValidation = {
 
   createCoupon: [
     body("promotion_id").isInt({ min: 1 }).withMessage("Valid promotion_id is required"),
+    validate,
   ],
 
   useCoupon: [body("code").trim().notEmpty().isString().isLength({ min: 5, max: 50 }), validate],

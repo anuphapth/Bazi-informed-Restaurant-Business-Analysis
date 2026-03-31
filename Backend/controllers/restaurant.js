@@ -187,7 +187,8 @@ export const deletePromotionGroup = async (req, res) => {
 export const restaurantUser = async (req, res) => {
   try {
     const restaurantId = req.user.restaurantId
-    const result = await restaurantService.restaurantUser(restaurantId)
+    const { page } = req.body
+    const result = await restaurantService.restaurantUser(restaurantId, page)
     return res.status(200).json(result)
   } catch (error) {
     console.error('[RestaurantUser Error]', error)

@@ -8,17 +8,16 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import setupSwagger from "./docs/swagger.js";
 
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+const origins = process.env.ALLOW_URL.split(',')
 app.use(cors({
-  origin: [
-    "https://meningococcic-geratologic-harriett.ngrok-free.dev",
-    "https://noncognizant-toshia-unslyly.ngrok-free.dev"
-  ],
+  origin: origins,
   methods: ["GET","POST","PUT","DELETE","PATCH"],
   credentials: true
 }))
@@ -37,6 +36,9 @@ const loadRoutes = async () => {
 }
 
 await loadRoutes()
+
+// Setup Swagger documentation
+setupSwagger(app)
 
 // serve React
 app.use(express.static(path.join(__dirname, "public")))

@@ -129,13 +129,11 @@ class AuthService {
     }
 
     const summary = baziResponse.data.summary
-
-    const main_element = `${summary?.dayMaster?.elementTh ?? ''} ${summary?.dayMaster?.polarity ?? ''} ${summary?.statusText ?? ''}`.trim()
-
+    const main_element = summary.dayMaster?.elementTh
     const favorable_elements = summary.favorableElements
     const unfavorable_elements = summary.unfavorableElements
 
-    if (!main_element) {
+    if (!main_element || !VALID_ELEMENTS.includes(main_element)) {
       throw new Error('Invalid element data')
     }
 

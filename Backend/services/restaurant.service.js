@@ -183,19 +183,6 @@ class RestaurantService {
         throw new Error('No menus match the specified elements')
       }
 
-      const promotionGroupId =
-        await this.restaurantRepo.createGroupPromotion(client, {
-          ...data,
-          restaurant_id: restaurantId
-        });
-
-        for (const menu of menus) {
-        await this.restaurantRepo.createPromotionMapping(
-          client,
-          promotionGroupId,
-          menu.id
-        );
-      }
       const promotionElements = [
         ...new Set(
           menus.flatMap(menu => menu.element).filter(element => data.element.includes(element))
@@ -210,7 +197,6 @@ class RestaurantService {
       })
 
       return {
-        promotionGroupId,
         message: "Promotion created successfully",
         totalMenus: menus.length
       }
@@ -236,9 +222,8 @@ class RestaurantService {
   async pushPromotion(users, promotion, restaurantId) {
     const chunks = this.chunkArray(users, 100)
     const URL = await this.regisUserbyRestaurant(restaurantId);
-    const restaurantName = await this.restaurantRepo.getRestaurantById(restaurantId)
     const messageText = `🎉 โปรโมชั่นพิเศษสำหรับคุณ!
-🏪 ร้านค้า: ${restaurantName[0].name || 'ร้านค้าไม่ระบุ'}
+
 📌 ชื่อโปรโมชัน: ${promotion?.name ?? '-'}
 📝 รายละเอียด: ${promotion?.description ?? '-'}
 🔥 ธาตุที่เข้าร่วม: ${promotion?.element ?? '-'}

@@ -27,10 +27,7 @@ function copyRecursive(src, dest) {
     const entries = fs.readdirSync(src);
 
     for (const entry of entries) {
-      copyRecursive(
-        path.join(src, entry),
-        path.join(dest, entry)
-      );
+      copyRecursive(path.join(src, entry), path.join(dest, entry));
     }
   } else {
     fs.copyFileSync(src, dest);
@@ -38,5 +35,3 @@ function copyRecursive(src, dest) {
 }
 
 copyRecursive(distPath, backendPublicPath);
-
-console.log("Frontend copied successfully");

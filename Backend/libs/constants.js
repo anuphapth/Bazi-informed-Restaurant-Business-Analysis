@@ -1,16 +1,17 @@
 const constants = {
   // Restaurant queries
   CheckRestarant: "SELECT id, name, email FROM restaurants WHERE id = $1",
-  restaurantLogin: "SELECT id, name, email, password FROM restaurants WHERE email = $1",
+  restaurantLogin:
+    "SELECT id, name, email, password FROM restaurants WHERE email = $1",
   editRestaurant:
     "UPDATE restaurants SET name = COALESCE($1, name), email = COALESCE($2, email), password = COALESCE($3, password), status = COALESCE($4, status), updated_at = CURRENT_TIMESTAMP WHERE id = $5",
 
   getAllrowMenuByRestaurant: `
-  SELECT COUNT(*) AS total FROM menu m 
+  SELECT COUNT(*) AS total FROM menus m 
   WHERE m.restaurant_id = $1 AND m.status = 'AVAILABLE'
   `,
   findMenuByRestaurant: `
-    SELECT image_url FROM menu m 
+    SELECT image_url FROM menus m 
     WHERE m.id = $1
   `,
   getAllrowUserByRestaurant: `
@@ -117,19 +118,20 @@ ORDER BY count DESC
   // Menu queries
   getMenu: `
     SELECT id, name, price, element, description, image_url, status, created_at
-    FROM menu
+    FROM menus
     WHERE restaurant_id = $1
     ORDER BY created_at DESC
     LIMIT $2 OFFSET $3
   `,
 
-  addNewMenu: "INSERT INTO menu (restaurant_id, name, description, price, element, image_url, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+  addNewMenu:
+    "INSERT INTO menus (restaurant_id, name, description, price, element, image_url, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 
   editMenu:
-    "UPDATE menu SET name = COALESCE($1, name), price = COALESCE($2, price), element = COALESCE($3, element), image_url = COALESCE($4, image_url), status = COALESCE($5, status) ,description = COALESCE($6, description), updated_at = CURRENT_TIMESTAMP WHERE id = $7",
+    "UPDATE menus SET name = COALESCE($1, name), price = COALESCE($2, price), element = COALESCE($3, element), image_url = COALESCE($4, image_url), status = COALESCE($5, status) ,description = COALESCE($6, description), updated_at = CURRENT_TIMESTAMP WHERE id = $7",
 
   deleteMenu: `
-    DELETE FROM menu m WHERE m.id = $1
+    DELETE FROM menus m WHERE m.id = $1
   `,
   getMenuByUser: `
 SELECT 
@@ -149,10 +151,8 @@ SELECT
           'description', ap.description,
           'end_date', ap.end_date,
 
-          -- แสดงเป็น 100%
           'discount', ap.discount_value::text || '%',
 
-          -- คำนวณราคารวมหลังลด
           'total',
             ROUND(
               m.price - (m.price * ap.discount_value / 100.0),
@@ -171,7 +171,7 @@ SELECT
     ELSE false
   END AS "canUsePromotion"
 
-FROM menu m
+FROM menus m
 
 JOIN users u 
   ON m.restaurant_id = u.restaurant_id
@@ -226,7 +226,7 @@ LIMIT $2 OFFSET $3;
   `,
 
   getAllrowMenu: `
-  SELECT COUNT(*) AS total FROM menu m 
+  SELECT COUNT(*) AS total FROM menus m 
   JOIN users u ON m.restaurant_id = u.restaurant_id
   WHERE u.id = $1 AND m.status = 'AVAILABLE'
   `,
@@ -266,20 +266,17 @@ SELECT
     ELSE false
   END AS "canUsePromotion"
 
-FROM menu m
+FROM menus m
 
--- 🔥 promotion join
 LEFT JOIN (
     SELECT DISTINCT ON (pg.id, p.menu_id)
 
         p.id,
         p.menu_id,
-
         pg.name,
         pg.description,
         pg.discount_value,
         pg.end_date,
-
         c.code AS coupon_code
 
     FROM promotions p
@@ -297,7 +294,6 @@ LEFT JOIN (
       AND (NOW() AT TIME ZONE 'Asia/Bangkok')
           BETWEEN pg.start_date AND pg.end_date
 
-      -- ตัด USED ออก
       AND NOT EXISTS (
           SELECT 1
           FROM coupons cu
@@ -316,7 +312,6 @@ WHERE m.restaurant_id = (
 
 AND m.status = 'AVAILABLE'
 
--- 🔥 filter element like เดิม
 AND EXISTS (
     SELECT 1
     FROM user_elements ue
@@ -368,7 +363,7 @@ SELECT
     ELSE false
   END AS "canUsePromotion"
 
-FROM menu m
+FROM menus m
 
 LEFT JOIN (
     SELECT DISTINCT ON (pg.id, p.menu_id)
@@ -426,7 +421,7 @@ LIMIT $4 OFFSET $5
 
   filterMenuCount: `
 SELECT COUNT(*)::int AS total
-FROM menu m
+FROM menus m
 WHERE
   m.restaurant_id = $1
   AND m.status = 'AVAILABLE'
@@ -438,7 +433,7 @@ WHERE
 
   getAllrowMenuElementLike: `
 SELECT COUNT(*) AS total
-FROM menu m
+FROM menus m
 WHERE m.restaurant_id = $1
   AND m.status = 'AVAILABLE'
   AND EXISTS (
@@ -454,7 +449,7 @@ WHERE m.restaurant_id = $1
 
   findMenuelelemet: `
 SELECT id, name, price, element::jsonb 
-FROM menu
+FROM menus
 WHERE restaurant_id = $1 
 AND element @> $2::jsonb
 
@@ -495,7 +490,7 @@ SELECT
 FROM promotion_groups pg
 LEFT JOIN promotions p
   ON pg.id = p.promotion_group_id
-LEFT JOIN menu m
+LEFT JOIN menus m
   ON p.menu_id = m.id
 WHERE pg.restaurant_id = $1
 ORDER BY pg.id, m.name;
@@ -512,7 +507,7 @@ ORDER BY pg.id, m.name;
   VALUES ($1, $2)
 `,
 
-findUserByElemets: `
+  findUserByElemets: `
 SELECT u.line_uid
     FROM users u
     JOIN user_elements ue ON ue.user_id = u.id
@@ -540,7 +535,7 @@ SELECT
 FROM promotion_groups pg
 LEFT JOIN promotions p
   ON pg.id = p.promotion_group_id
-LEFT JOIN menu m
+LEFT JOIN menus m
   ON p.menu_id = m.id
 WHERE pg.id = $1
 ORDER BY m.name;
@@ -650,6 +645,6 @@ ORDER BY r.id;
   deleteRestaurantByAdmin: `
   DELETE FROM restaurants WHERE id = $1
   `,
-}
+};
 
-export default constants
+export default constants;

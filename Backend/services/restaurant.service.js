@@ -1,8 +1,11 @@
-import RestaurantRepository from '../repositories/restaurant.repository.js'
-import bcrypt from 'bcrypt'
-import dotenv from 'dotenv'
-import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js'
-import { getPublicIdFromUrl } from '../utils/cloudinary.js'
+import RestaurantRepository from "../repositories/restaurant.repository.js";
+import bcrypt from "bcrypt";
+import dotenv from "dotenv";
+import {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
+import { getPublicIdFromUrl } from "../utils/cloudinary.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -10,97 +13,103 @@ import {
   revokeAccessToken,
   revokeRefreshToken,
   revokeAllUserTokens,
-} from '../lib/jwt.js'
-import {
-  encodeShort,
-} from '../utils/cryptoUtil.js'
-import { executeQueryWithTransaction } from '../lib/db.js'
-import axios from 'axios'
+} from "../libs/jwt.js";
+import { encodeShort } from "../utils/cryptoUtil.js";
+import { executeQueryWithTransaction } from "../libs/db.js";
+import axios from "axios";
 
-dotenv.config()
+dotenv.config();
 
-const SALT_ROUNDS = 12
+const SALT_ROUNDS = 12;
 
 class RestaurantService {
   constructor() {
-    this.restaurantRepo = new RestaurantRepository()
+    this.restaurantRepo = new RestaurantRepository();
   }
 
   async login(email, password) {
-    const checkLogin = await this.restaurantRepo.getRestaurantByEmail(email)
+    const checkLogin = await this.restaurantRepo.getRestaurantByEmail(email);
     if (checkLogin.length === 0) {
-      throw new Error('Invalid email or password')
+      throw new Error("Invalid email or password");
     }
 
-    const isMatch = await bcrypt.compare(password, checkLogin[0].password)
+    const isMatch = await bcrypt.compare(password, checkLogin[0].password);
     if (!isMatch) {
-      throw new Error('Invalid email or password')
+      throw new Error("Invalid email or password");
     }
 
-    const restaurant = checkLogin[0]
+    const restaurant = checkLogin[0];
     const accessToken = generateAccessToken({
       userId: restaurant.id,
-      userType: 'RESTAURANT',
+      userType: "RESTAURANT",
       restaurantId: restaurant.id,
-    })
+    });
 
-    const refreshToken = await generateRefreshToken(restaurant.id, 'RESTAURANT', {
-      deviceInfo: 'web',
-      ipAddress: '127.0.0.1',
-    })
+    const refreshToken = await generateRefreshToken(
+      restaurant.id,
+      "RESTAURANT",
+      {
+        deviceInfo: "web",
+        ipAddress: "127.0.0.1",
+      },
+    );
 
     return {
       restaurant,
-      tokens: { accessToken, refreshToken }
-    }
+      tokens: { accessToken, refreshToken },
+    };
   }
 
   async preEdit(restaurantId) {
-    const info = await this.restaurantRepo.getRestaurantById(restaurantId)
-    return { info }
+    const info = await this.restaurantRepo.getRestaurantById(restaurantId);
+    return { info };
   }
 
   async editRestaurant(restaurantId, data) {
-    let hashPassword = null
+    let hashPassword = null;
     if (data.password) {
-      hashPassword = await bcrypt.hash(data.password, SALT_ROUNDS)
+      hashPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
     }
 
     await this.restaurantRepo.editRestaurant({
       ...data,
       password: hashPassword,
-      restaurantId
-    })
+      restaurantId,
+    });
 
-    return { message: 'Restaurant updated successfully' }
+    return { message: "Restaurant updated successfully" };
   }
 
   async menu(restaurantId, page) {
-    const limit = 12
-    const offset = (page - 1) * limit
+    const limit = 12;
+    const offset = (page - 1) * limit;
 
-    const getMenu = await this.restaurantRepo.getMenu(restaurantId, limit, offset)
-    const rows = await this.restaurantRepo.getAllMenuRows(restaurantId)
-    const lastPage = Math.ceil(rows[0].total / limit)
+    const getMenu = await this.restaurantRepo.getMenu(
+      restaurantId,
+      limit,
+      offset,
+    );
+    const rows = await this.restaurantRepo.getAllMenuRows(restaurantId);
+    const lastPage = Math.ceil(rows[0].total / limit);
 
-    return { lastPage, getMenu }
+    return { lastPage, getMenu };
   }
 
   async addNewMenu(restaurantId, data, file) {
-    let elementValue = '[]'
+    let elementValue = "[]";
     if (data.element) {
       elementValue = Array.isArray(data.element)
         ? JSON.stringify(data.element)
-        : JSON.stringify([data.element])
+        : JSON.stringify([data.element]);
     }
 
-    let image_url = null
-    let image_public_id = null
+    let image_url = null;
+    let image_public_id = null;
 
     if (file) {
-      const uploadResult = await uploadToCloudinary(file.buffer)
-      image_url = uploadResult.secure_url
-      image_public_id = uploadResult.public_id
+      const uploadResult = await uploadToCloudinary(file.buffer);
+      image_url = uploadResult.secure_url;
+      image_public_id = uploadResult.public_id;
     }
 
     await this.restaurantRepo.addNewMenu({
@@ -110,123 +119,160 @@ class RestaurantService {
       price: data.price,
       element: elementValue,
       image_url,
-      status: data.status || 'AVAILABLE'
-    })
+      status: data.status || "AVAILABLE",
+    });
 
-    return { message: 'Menu created successfully' }
+    return { message: "Menu created successfully" };
   }
 
   async editMenu(menuId, data, file) {
-    const findMenu = await this.restaurantRepo.findMenuById(menuId)
+    const findMenu = await this.restaurantRepo.findMenuById(menuId);
 
     if (findMenu.length === 0) {
-      throw new Error('Menu not found')
+      throw new Error("Menu not found");
     }
 
-    let imageUrlToSave = findMenu[0].image_url
+    let imageUrlToSave = findMenu[0].image_url;
 
     if (file) {
-      const uploadResult = await uploadToCloudinary(file.buffer)
-      imageUrlToSave = uploadResult.secure_url
+      const uploadResult = await uploadToCloudinary(file.buffer);
+      imageUrlToSave = uploadResult.secure_url;
 
       if (findMenu[0].image_url) {
-        const publicId = getPublicIdFromUrl(findMenu[0].image_url)
+        const publicId = getPublicIdFromUrl(findMenu[0].image_url);
         if (publicId) {
-          await deleteFromCloudinary(publicId)
+          await deleteFromCloudinary(publicId);
         }
       }
     }
 
     const elementValue = data.element
-      ? JSON.stringify(Array.isArray(data.element) ? data.element : [data.element])
-      : null
+      ? JSON.stringify(
+          Array.isArray(data.element) ? data.element : [data.element],
+        )
+      : null;
 
     await this.restaurantRepo.editMenu({
       ...data,
       element: elementValue,
       image_url: imageUrlToSave,
-      menuId
-    })
+      menuId,
+    });
 
-    return { message: 'Menu updated successfully' }
+    return { message: "Menu updated successfully" };
   }
 
   async deleteMenu(menuId) {
-    const findMenu = await this.restaurantRepo.findMenuById(menuId)
+    const findMenu = await this.restaurantRepo.findMenuById(menuId);
 
     if (findMenu.length === 0) {
-      throw new Error('Menu not found')
+      throw new Error("Menu not found");
     }
 
-    const oldImageUrl = findMenu[0].image_url
-    const publicId = getPublicIdFromUrl(oldImageUrl)
+    const oldImageUrl = findMenu[0].image_url;
+    const publicId = getPublicIdFromUrl(oldImageUrl);
     if (publicId) {
-      await deleteFromCloudinary(publicId)
+      await deleteFromCloudinary(publicId);
     }
 
-    await this.restaurantRepo.deleteMenu(menuId)
+    await this.restaurantRepo.deleteMenu(menuId);
 
-    return { message: 'Delete Menu successfully' }
+    return { message: "Delete Menu successfully" };
   }
 
   async createPromotion(data, restaurantId) {
     return await executeQueryWithTransaction(async (client) => {
-
       if (data.discount_value <= 0 || data.discount_value > 100) {
-        throw new Error('Discount Error');
+        throw new Error("Discount Error");
       }
 
-      const menus = await this.restaurantRepo.findMenuByElement(client, data.element, restaurantId)
-
+      const menus = await this.restaurantRepo.findMenuByElement(
+        client,
+        data.element,
+        restaurantId,
+      );
 
       if (!menus || menus.length === 0) {
-        throw new Error('No menus match the specified elements')
+        throw new Error("No menus match the specified elements");
       }
 
       const promotionElements = [
         ...new Set(
-          menus.flatMap(menu => menu.element).filter(element => data.element.includes(element))
-        )
-      ]
+          menus
+            .flatMap((menu) => menu.element)
+            .filter((element) => data.element.includes(element)),
+        ),
+      ];
 
+      // Create promotion group
+      const groupId = await this.restaurantRepo.createGroupPromotion(client, {
+        restaurant_id: restaurantId,
+        name: data.name,
+        description: data.description,
+        discount_value: data.discount_value,
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
+      });
+
+      // Create promotion mapping for each menu
+      for (const menu of menus) {
+        await this.restaurantRepo.createPromotionMapping(
+          client,
+          groupId,
+          menu.id,
+        );
+      }
+
+      // Async push notification / AI recommendation
       await this.pushPromotionAsync(promotionElements, restaurantId, {
         name: data.name,
         description: data.description,
-        element: promotionElements.join(', '),
-        discount_value: data.discount_value
-      })
+        element: promotionElements.join(", "),
+        discount_value: data.discount_value,
+      });
 
       return {
         message: "Promotion created successfully",
-        totalMenus: menus.length
-      }
-    })
+        promotion_group_id: groupId,
+        totalMenus: menus.length,
+        menus: menus.map((menu) => ({
+          id: menu.id,
+          name: menu.name,
+        })),
+      };
+    });
   }
 
   async pushPromotionAsync(targetElements, restaurantId, promotion) {
     setImmediate(async () => {
       try {
-        const users = await this.restaurantRepo.findUsersByElements(restaurantId, targetElements)
+        const users = await this.restaurantRepo.findUsersByElements(
+          restaurantId,
+          targetElements,
+        );
 
         if (!users || users.length === 0) {
           return;
         }
 
-        await this.pushPromotion(users, promotion, restaurantId)
+        await this.pushPromotion(users, promotion, restaurantId);
       } catch (err) {
-        console.error('Push Promotion Error:', err.response?.data || err.message);
+        console.error(
+          "Push Promotion Error:",
+          err.response?.data || err.message,
+        );
       }
-    })
+    });
   }
 
   async pushPromotion(users, promotion, restaurantId) {
-    const chunks = this.chunkArray(users, 100)
+    const chunks = this.chunkArray(users, 100);
     const URL = await this.regisUserbyRestaurant(restaurantId);
     const messageText = `🎉 โปรโมชั่นพิเศษสำหรับคุณ!
 
-📌 ชื่อโปรโมชัน: ${promotion?.name ?? '-'}
-📝 รายละเอียด: ${promotion?.description ?? '-'}
-🔥 ธาตุที่เข้าร่วม: ${promotion?.element ?? '-'}
+📌 ชื่อโปรโมชัน: ${promotion?.name ?? "-"}
+📝 รายละเอียด: ${promotion?.description ?? "-"}
+🔥 ธาตุที่เข้าร่วม: ${promotion?.element ?? "-"}
 💸 ส่วนลด: ${promotion?.discount_value ?? 0}%
 
  ตรจจสอบโปรโมชันได้ที่ ${URL}
@@ -235,27 +281,27 @@ class RestaurantService {
 
     for (const group of chunks) {
       await Promise.all(
-        group.map(user =>
+        group.map((user) =>
           axios.post(
-            'https://api.line.me/v2/bot/message/push',
+            "https://api.line.me/v2/bot/message/push",
             {
               to: user.line_uid,
               messages: [
                 {
-                  type: 'text',
-                  text: messageText
-                }
-              ]
+                  type: "text",
+                  text: messageText,
+                },
+              ],
             },
             {
               headers: {
                 Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          )
-        )
-      )
+                "Content-Type": "application/json",
+              },
+            },
+          ),
+        ),
+      );
     }
   }
 
@@ -268,7 +314,8 @@ class RestaurantService {
   }
 
   async getAllPromotion(restaurantId) {
-    const rows = await this.restaurantRepo.getAllPromotionByRestaurant(restaurantId);
+    const rows =
+      await this.restaurantRepo.getAllPromotionByRestaurant(restaurantId);
 
     const groupMap = {};
 
@@ -286,20 +333,21 @@ class RestaurantService {
           status: row.status,
           created_at: row.created_at,
           updated_at: row.updated_at,
-          menus: []
+          menus: [],
         };
       }
 
       if (row.menu_id) {
         const discountValue = row.discount_value;
 
-        const afterDiscount = row.menu_price - (row.menu_price * discountValue) / 100;
+        const afterDiscount =
+          row.menu_price - (row.menu_price * discountValue) / 100;
 
         groupMap[groupId].menus.push({
           id: row.menu_id,
           name: row.menu_name,
           price: row.menu_price,
-          afterDiscount: String(Number(afterDiscount.toFixed(2)))
+          afterDiscount: String(Number(afterDiscount.toFixed(2))),
         });
       }
     }
@@ -314,7 +362,7 @@ class RestaurantService {
     const rows = await this.restaurantRepo.getPromotionGroup(groupId);
 
     if (rows.length === 0) {
-      throw new Error('Promotion group not found');
+      throw new Error("Promotion group not found");
     }
 
     const first = rows[0];
@@ -329,7 +377,7 @@ class RestaurantService {
       status: first.status,
       created_at: first.created_at,
       updated_at: first.updated_at,
-      menus: []
+      menus: [],
     };
 
     for (const row of rows) {
@@ -342,7 +390,7 @@ class RestaurantService {
           id: row.menu_id,
           name: row.menu_name,
           price: row.menu_price,
-          afterDiscount: String(Number(afterDiscount.toFixed(2)))
+          afterDiscount: String(Number(afterDiscount.toFixed(2))),
         });
       }
     }
@@ -351,78 +399,75 @@ class RestaurantService {
   }
 
   async updatePromotionGroup(groupId, data) {
-
     const result = await this.restaurantRepo.updatePromotionGroup({
       ...data,
-      groupId
+      groupId,
     });
 
     if (result.length === 0) {
-      throw new Error('Promotion group not found');
+      throw new Error("Promotion group not found");
     }
 
-    return { message: 'Promotion group updated successfully' };
+    return { message: "Promotion group updated successfully" };
   }
-
 
   async deletePromotionGroup(groupId) {
     const result = await this.restaurantRepo.deletePromotionGroup(groupId);
 
     if (result.length === 0) {
-      throw new Error('Promotion group not found');
+      throw new Error("Promotion group not found");
     }
 
-    return { message: 'Promotion group deleted successfully' };
+    return { message: "Promotion group deleted successfully" };
   }
 
-
   async restaurantUser(restaurantId) {
-    const user = await this.restaurantRepo.findUser(restaurantId)
+    const user = await this.restaurantRepo.findUser(restaurantId);
 
-    const element = await this.restaurantRepo.collectElement(restaurantId)
+    const element = await this.restaurantRepo.collectElement(restaurantId);
 
     return {
       element: element || [],
-      user: user || []
-    }
+      user: user || [],
+    };
   }
 
   async refreshAccessToken(refreshToken) {
     if (!refreshToken) {
-      throw new Error('Refresh token required')
+      throw new Error("Refresh token required");
     }
 
-    const decoded = await verifyRefreshToken(refreshToken)
+    const decoded = await verifyRefreshToken(refreshToken);
 
     const newAccessToken = generateAccessToken({
       userId: decoded.userId,
       userType: decoded.userType,
       restaurantId: decoded.restaurantId || decoded.userId,
-    })
+    });
 
-    return { accessToken: newAccessToken }
+    return { accessToken: newAccessToken };
   }
 
   async logout(accessToken, refreshToken) {
     if (accessToken) {
-      await revokeAccessToken(accessToken, 'restaurant_logout')
+      await revokeAccessToken(accessToken, "restaurant_logout");
     }
 
     if (refreshToken) {
-      await revokeRefreshToken(refreshToken, 'restaurant_logout')
+      await revokeRefreshToken(refreshToken, "restaurant_logout");
     }
 
-    return { message: 'Logged out successfully' }
+    return { message: "Logged out successfully" };
   }
 
   async logoutAllDevices(userId, userType) {
     if (!userId) {
-      throw new Error('Authentication required')
+      throw new Error("Authentication required");
     }
 
-    await revokeAllUserTokens(userId, userType)
+    await revokeAllUserTokens(userId, userType);
 
-    return { message: 'Logged out from all devices successfully' }
+    return { message: "Logged out from all devices successfully" };
   }
 
   async regisUserbyRestaurant(restaurantId) {
@@ -431,11 +476,11 @@ class RestaurantService {
     const baseUrl = process.env.FRONTEND_URL;
 
     if (!baseUrl) {
-      throw new Error('FRONTEND_URL is not defined');
+      throw new Error("FRONTEND_URL is not defined");
     }
 
     return `${baseUrl}/loginuser?t=${token}`;
   }
 }
 
-export default RestaurantService
+export default RestaurantService;

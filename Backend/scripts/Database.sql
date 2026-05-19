@@ -12,7 +12,7 @@ DROP TABLE IF EXISTS promotion_groups CASCADE;
 DROP TABLE IF EXISTS predictions CASCADE;
 DROP TABLE IF EXISTS user_elements CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS menu CASCADE;
+DROP TABLE IF EXISTS menus CASCADE;
 DROP TABLE IF EXISTS restaurants CASCADE;
 DROP TABLE IF EXISTS admins CASCADE;
 
@@ -121,7 +121,7 @@ CREATE TABLE user_elements (
 -- MENU
 -- =========================================================
 
-CREATE TABLE menu (
+CREATE TABLE menus (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   restaurant_id INTEGER NOT NULL,
   name VARCHAR(255) NOT NULL,
@@ -135,8 +135,8 @@ CREATE TABLE menu (
   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_menu_restaurant ON menu(restaurant_id);
-CREATE INDEX idx_menu_status ON menu(status);
+CREATE INDEX idx_menus_restaurant ON menus(restaurant_id);
+CREATE INDEX idx_menus_status ON menus(status);
 
 -- =========================================================
 -- PROMOTION GROUPS (MAIN PROMOTION DATA)
@@ -173,7 +173,7 @@ CREATE TABLE promotions (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (promotion_group_id, menu_id),
   FOREIGN KEY (promotion_group_id) REFERENCES promotion_groups(id) ON DELETE CASCADE,
-  FOREIGN KEY (menu_id) REFERENCES menu(id) ON DELETE CASCADE
+  FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_promotions_group ON promotions(promotion_group_id);
@@ -265,9 +265,12 @@ CREATE TRIGGER trg_admins_updated BEFORE UPDATE ON admins FOR EACH ROW EXECUTE F
 CREATE TRIGGER trg_restaurants_updated BEFORE UPDATE ON restaurants FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_users_updated BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_user_elements_updated BEFORE UPDATE ON user_elements FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_menu_updated BEFORE UPDATE ON menu FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_menus_updated BEFORE UPDATE ON menus FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_promotion_groups_updated BEFORE UPDATE ON promotion_groups FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_promotions_updated BEFORE UPDATE ON promotions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_predictions_updated BEFORE UPDATE ON predictions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 COMMIT;
+
+-- Insert into admin
+INSERT INTO admins (email, password, role) VALUES ('admin@gmail.com', '$2a$12$RJzan.lCq0uH6agHFBT6bOKJHnFdevd3Dky0GmoH5X02u8zQGM/vK', 'ADMIN');

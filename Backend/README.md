@@ -32,6 +32,7 @@
 ### 2.Install
 
 ### Backend
+
 - **Node.js** (v20+) - Runtime Environment
 - **Express.js** (v5.2.1) - Web Framework
 - **PostgreSQL** - Database Management System
@@ -40,12 +41,14 @@
 - **Cloudinary** - Image Upload & Storage
 
 ### Security & Validation
+
 - **Express Validator** - Input Validation & Sanitization
 - **Express Rate Limit** - API Rate Limiting
 - **Helmet** - Security Headers
 - **CORS** - Cross-Origin Resource Sharing
 
 ### Development Tools
+
 - **Nodemon** - Development Server
 - **Morgan** - HTTP Request Logging
 - **Dotenv** - Environment Variables
@@ -54,6 +57,7 @@
 ## System Architecture
 
 ### API Structure
+
 ```
 /api/
 ├── /auth/          # User Authentication & Profile
@@ -63,6 +67,7 @@
 ```
 
 ### Authentication Flow
+
 1. **User Registration**: LINE UID + Birth Details → Bazi Calculation
 2. **Login**: Email/Password → JWT Access Token + Refresh Token
 3. **Token Refresh**: Refresh Token → New Access Token
@@ -73,7 +78,9 @@
 ### Authentication Routes (`/api/auth/`)
 
 #### POST /auth/lineUIDCheck
+
 Check user registration with LINE UID
+
 ```json
 {
   "lineUid": "user_line_uid"
@@ -81,7 +88,9 @@ Check user registration with LINE UID
 ```
 
 #### POST /auth/register
+
 Register new user with birth information
+
 ```json
 {
   "lineUid": "user_line_uid",
@@ -95,7 +104,9 @@ Register new user with birth information
 ```
 
 #### POST /auth/prediction
+
 Get daily prediction
+
 ```json
 {
   "topic": "career|love|health|finance"
@@ -103,7 +114,9 @@ Get daily prediction
 ```
 
 #### POST /auth/menu
+
 View menu with element filtering
+
 ```json
 {
   "page": 1,
@@ -113,7 +126,9 @@ View menu with element filtering
 ```
 
 #### POST /auth/coupon/add
+
 Create coupon for promotion
+
 ```json
 {
   "promotion_id": 123
@@ -123,7 +138,9 @@ Create coupon for promotion
 ### Restaurant Routes (`/api/restaurant/`)
 
 #### POST /restaurant/login
+
 Restaurant login
+
 ```json
 {
   "email": "restaurant@example.com",
@@ -132,7 +149,9 @@ Restaurant login
 ```
 
 #### POST /restaurant/menu
+
 Manage restaurant menu
+
 ```json
 {
   "page": 1,
@@ -141,13 +160,15 @@ Manage restaurant menu
 ```
 
 #### POST /restaurant/promotion/create
+
 Create new promotion
+
 ```json
 {
   "name": "Special Promotion",
   "element": ["Fire", "Earth"],
   "description": "Promotion for customers with Fire and Earth elements",
-  "discount_value": 20.00,
+  "discount_value": 20.0,
   "start_date": "2024-01-01",
   "end_date": "2024-12-31"
 }
@@ -156,7 +177,9 @@ Create new promotion
 ### Admin Routes (`/api/admin/`)
 
 #### POST /admin/login
+
 Admin login
+
 ```json
 {
   "email": "admin@example.com",
@@ -165,7 +188,9 @@ Admin login
 ```
 
 #### POST /admin/restaurant
+
 View all restaurants and customers
+
 ```json
 {
   "page": 1,
@@ -174,34 +199,41 @@ View all restaurants and customers
 ```
 
 ## Database Design
+
 ![ER Diagram](docs/database/er-diagram.png)
+
 ### Core Tables
 
 #### users
+
 - `id`: Primary Key
 - `line_uid`: LINE User ID (Unique per Restaurant)
 - `restaurant_id`: Foreign Key to Restaurant
 - `birth_date`, `birth_time`, `birth_place`: For Bazi Calculation
 
 #### user_elements
+
 - `user_id`: Foreign Key to User
 - `main_element`: Main Element (Wood, Fire, Earth, Metal, Water)
 - `favorable_elements`: JSON Array of Compatible Elements
 - `unfavorable_elements`: JSON Array of Incompatible Elements
 
-#### menu
+#### menus
+
 - `restaurant_id`: Foreign Key to Restaurant
 - `element`: JSON Array of Menu Elements
 - `price`: Menu Price
 - `image_url`: Cloudinary Image URL
 
 #### promotion_groups
+
 - `restaurant_id`: Foreign Key to Restaurant
 - `discount_value`: Discount Percentage (0-100)
 - `start_date`, `end_date`: Validity Period
 - `status`: AVAILABLE|UNAVAILABLE|EXPIRED
 
 #### coupons
+
 - `user_id`: Foreign Key to User
 - `promotion_id`: Foreign Key to Promotion
 - `code`: Unique Coupon Code
@@ -210,15 +242,18 @@ View all restaurants and customers
 ## Installation & Setup
 
 ### 1. Install Dependencies
+
 ```bash
 # Install dependencies
 npm install
 ```
 
 ### 2. Set Environment Variables
+
 Copy `.env.example` to `.env` and fill in the data:
 
 ### 3. Run Database Migration
+
 ```bash
 # For PostgreSQL
 psql -U your_user -d your_database -f scripts/Database.sql
@@ -228,6 +263,7 @@ mysql -u your_user -p your_database < scripts/Database.sql
 ```
 
 ### 4. Start Development Server
+
 ```bash
 # Development Mode
 npm run dev
@@ -237,6 +273,7 @@ npm start
 ```
 
 ### 5. Test API
+
 ```bash
 # Health Check
 curl http://localhost:3000/api/health
@@ -250,26 +287,31 @@ curl http://localhost:3000/api/
 ### Main Challenges
 
 #### 1. Bazi Calculation According to Chinese Astrology
+
 - **Problem**: Converting birth information (date, time, place) into accurate Bazi data
 - **Solution**: Use external API (BAZI_API_KEY) to calculate elements and components
 - **Learned**: Complexity of Chinese astrology and its digital application
 
 #### 2. Multi-Level JWT Token Management
+
 - **Problem**: Support 3-level authentication (Admin, Restaurant, User) with token rotation
 - **Solution**: Design JWT system with Refresh Token and Token Blacklist
 - **Learned**: Security of Authentication systems and Session management
 
 #### 3. Database Design for Element-based Matching
+
 - **Problem**: Store and search element data as Array/JSON
 - **Solution**: Use PostgreSQL JSONB type with Index for efficient searching
 - **Learned**: Database design for complex relational data
 
 #### 4. AI Integration for Prediction Generation
+
 - **Problem**: Generate natural and accurate predictions according to astrology
 - **Solution**: Use Groq API with specially designed Prompt Engineering
 - **Learned**: Using AI for specialized Content creation
 
 ### Additional Learnings
+
 - Designing APIs for real restaurant usage
 - File Upload and Storage management with Cloudinary
 - WebSocket usage for real-time notifications
@@ -279,26 +321,31 @@ curl http://localhost:3000/api/
 ## Future Improvements
 
 ### 1. Recommendation Engine
+
 - Develop more sophisticated menu recommendation algorithms
 - Add learning from user ordering behavior
 - Feedback Loop system to improve recommendation accuracy
 
 ### 2. Data Analytics
+
 - Dashboard for restaurants to view usage statistics
 - Customer behavior analysis by element
 - Sales and promotion reporting system
 
 ### 3. Bazi Feature Expansion
+
 - Compatibility analysis between customers
 - Monthly/yearly predictions
 - Detailed love and career predictions
 
 ### 4. Mobile Application Development
+
 - Develop mobile app for users
 - QR Code scanning for coupons
 - Push notification for promotions
 
 ### 5. POS System Integration
+
 - Connect with restaurant POS systems
 - Automatic inventory management
 - Real-time sales analysis
@@ -310,10 +357,12 @@ curl http://localhost:3000/api/
 This project is part of Project Course Year 3 Semester 3 at Rajamangala University of Technology
 
 ### Contact
+
 - GitHub: [anuphapth](https://github.com/anuphapth)
-- Email: anuphap2003118@gmail.com
+- Email: anuphap.thianprayoon@gmail.com
 
 ### Development Information
+
 - **Programming Language**: JavaScript (Node.js)
 - **Framework**: Express.js
 - **Database**: PostgreSQL
